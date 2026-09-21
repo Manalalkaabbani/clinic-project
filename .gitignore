@@ -5,14 +5,6 @@ __pycache__/
 venv/
 env/
 
-# Local databases and generated datasets
-*.db
-clinic_full_dump.sql
-data/
-analysis_outputs/
-*.csv
-*.xlsx
-
 # Frontend dependencies and build output
 rcm/frontend/node_modules/
 rcm/frontend/dist/
