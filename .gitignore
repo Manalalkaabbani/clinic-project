@@ -1,0 +1,33 @@
+# Python cache and local environments
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+env/
+
+# Local databases and generated datasets
+*.db
+clinic_full_dump.sql
+data/
+analysis_outputs/
+*.csv
+*.xlsx
+
+# Frontend dependencies and build output
+rcm/frontend/node_modules/
+rcm/frontend/dist/
+rcm/frontend/dist-ssr/
+rcm/frontend/.vite/
+
+# Local logs and environment files
+*.log
+.env
+.env.*
+!.env.example
+
+# IDE and OS files
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db

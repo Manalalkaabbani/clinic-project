@@ -1,0 +1,61 @@
+erDiagram
+    DEPARTMENTS ||--o{ DOCTORS : employs
+    INSURANCE_PROVIDERS ||--o{ PATIENTS : covers
+    DOCTORS ||--o{ DIAGNOSES : diagnoses
+    PATIENTS ||--o{ DIAGNOSES : receives
+    DIAGNOSES ||--|| BILLING : generates
+    DIAGNOSES ||--o{ LAB_TESTS : requests
+
+    DEPARTMENTS {
+        int department_id PK
+        string name
+        string location
+    }
+    DOCTORS {
+        int doctor_id PK
+        string first_name
+        string last_name
+        string specialty
+        int department_id FK
+        int years_experience
+    }
+    INSURANCE_PROVIDERS {
+        int insurance_id PK
+        string provider_name
+        string coverage_type
+        string contact_phone
+    }
+    PATIENTS {
+        int patient_id PK
+        string first_name
+        string last_name
+        date dob
+        string gender
+        string city
+        int insurance_id FK
+        date registration_date
+    }
+    DIAGNOSES {
+        int diagnosis_id PK
+        int patient_id FK
+        int doctor_id FK
+        string diagnosis_code
+        string description
+        string severity
+        date diagnosis_date
+    }
+    BILLING {
+        int billing_id PK
+        int diagnosis_id FK
+        decimal amount
+        string payment_status
+        string payment_method
+        date billing_date
+    }
+    LAB_TESTS {
+        int lab_test_id PK
+        int diagnosis_id FK
+        string test_type
+        string result_status
+        date test_date
+    }
