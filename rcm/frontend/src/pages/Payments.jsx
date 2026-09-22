@@ -56,7 +56,7 @@ export default function Payments() {
           <h1 className="text-2xl font-extrabold text-gray-900">Payments</h1>
           <p className="text-gray-500">Billing records, payment status, and collections.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
+        <button onClick={() => setOpen(true)} className="glass-action flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
           <Plus size={16} /> Add Billing Entry
         </button>
       </div>
@@ -85,7 +85,7 @@ export default function Payments() {
         </select>
       </div>
 
-      <DataTable columns={COLUMNS} rows={items} page={page} perPage={perPage} total={total} onPageChange={setPage} />
+      <DataTable columns={COLUMNS} rows={items} page={page} perPage={perPage} total={total} onPageChange={setPage} resource="billing" idKey="billing_id" onChanged={load} />
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add Billing Entry">
         <form onSubmit={submit} className="space-y-3">
@@ -107,7 +107,7 @@ export default function Payments() {
             </select>
           </div>
           <input type="date" value={form.billing_date} onChange={(e) => setForm({ ...form, billing_date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
+          <button type="submit" className="glass-action w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
         </form>
       </Modal>
     </div>

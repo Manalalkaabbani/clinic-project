@@ -11,9 +11,9 @@ import LabTests from "./pages/LabTests";
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="flex min-h-screen bg-[#F3F5F7]">
+      <div className="flex min-h-screen min-w-0 flex-col bg-[#F4F7FB] lg:flex-row">
         <Sidebar />
-        <main className="flex-1 p-6 lg:p-8 max-w-[1400px]">
+        <main className="min-w-0 max-w-[1400px] flex-1 p-4 sm:p-6 lg:p-8">
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/departments" element={<Departments />} />

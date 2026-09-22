@@ -5,5 +5,35 @@
 body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  background-color: #F3F5F7;
+  color: #172554;
+  background:
+    radial-gradient(circle at 8% 0%, rgba(147, 197, 253, 0.34), transparent 34%),
+    radial-gradient(circle at 92% 14%, rgba(191, 219, 254, 0.3), transparent 30%),
+    #F4F7FB;
+}
+
+@layer components {
+  .glass-panel {
+    background: rgba(255, 255, 255, 0.68);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.86);
+    box-shadow: 0 16px 40px rgba(30, 64, 175, 0.08);
+    transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  }
+
+  .glass-panel:hover {
+    transform: translateY(-2px);
+    border-color: rgba(147, 197, 253, 0.72);
+    box-shadow: 0 20px 46px rgba(30, 64, 175, 0.13);
+  }
+
+  .glass-action {
+    transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  }
+
+  .glass-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 10px 22px rgba(30, 64, 175, 0.2);
+  }
 }

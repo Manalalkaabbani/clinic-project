@@ -1,0 +1,11 @@
+medication_id,name,category,unit_price
+1,Amoxicillin,Antibiotic,197.24
+2,Azithromycin,Antibiotic,22.13
+3,Ibuprofen,Painkiller,93.38
+4,Paracetamol,Painkiller,78.62
+5,Metformin,Chronic - Diabetes,224.89
+6,Atorvastatin,Chronic - Cholesterol,207.86
+7,Amlodipine,Chronic - Hypertension,269.27
+8,Cetirizine,Antihistamine,39.78
+9,Omeprazole,Gastro,135.25
+10,Salbutamol,Respiratory,23.49

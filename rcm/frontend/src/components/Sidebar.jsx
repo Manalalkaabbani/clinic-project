@@ -3,6 +3,7 @@ import {
   LayoutDashboard, Building2, Stethoscope, Users, ClipboardList,
   CreditCard, FlaskConical, HeartPulse,
 } from "lucide-react";
+import DataTransfer from "./DataTransfer";
 
 const NAV_ITEMS = [
   { to: "/", label: "Dashboard", icon: LayoutDashboard, end: true },
@@ -16,40 +17,44 @@ const NAV_ITEMS = [
 
 export default function Sidebar() {
   return (
-    <aside className="w-64 shrink-0 bg-[#0B3D2E] text-white min-h-screen flex flex-col">
-      <div className="flex items-center gap-2 px-6 py-6">
+    <aside className="flex w-full shrink-0 flex-col bg-[#102A56] text-white lg:min-h-screen lg:w-64">
+      <div className="flex items-center gap-2 px-4 py-4 sm:px-6 lg:py-6">
         <div className="w-9 h-9 rounded-xl bg-brand-500 flex items-center justify-center">
           <HeartPulse size={20} className="text-white" />
         </div>
         <div>
-          <div className="font-bold text-lg leading-tight">ClinicRCM</div>
+          <div className="font-bold text-lg leading-tight">CarePath</div>
           <div className="text-xs text-white/50">Revenue Cycle System</div>
         </div>
       </div>
 
-      <nav className="flex-1 px-3 mt-4 space-y-1">
-        <div className="text-xs uppercase tracking-wider text-white/40 px-3 mb-2">Menu</div>
-        {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
-          <NavLink
-            key={to}
-            to={to}
-            end={end}
-            className={({ isActive }) =>
-              `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
-                isActive
-                  ? "bg-brand-500 text-white shadow-lg shadow-brand-900/30"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
-              }`
-            }
-          >
-            <Icon size={18} />
-            {label}
-          </NavLink>
-        ))}
+      <nav className="flex-1 overflow-x-auto px-3 pb-3 lg:mt-4 lg:overflow-visible lg:pb-0">
+        <div className="mb-2 hidden px-3 text-xs uppercase tracking-wider text-white/40 lg:block">Menu</div>
+        <div className="flex min-w-max gap-1 lg:flex-col lg:space-y-1">
+          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) =>
+                `flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors lg:gap-3 ${
+                  isActive
+                    ? "bg-brand-500 text-white shadow-lg shadow-brand-900/30"
+                    : "text-white/70 hover:bg-white/10 hover:text-white"
+                }`
+              }
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
-      <div className="px-6 py-4 text-xs text-white/40 border-t border-white/10">
-        Clinic RCM · Graduation Project
+      <DataTransfer />
+
+      <div className="hidden border-t border-white/10 px-6 py-4 text-xs text-white/40 lg:block">
+        CarePath
       </div>
     </aside>
   );

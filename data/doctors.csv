@@ -1,81 +1,81 @@
 doctor_id,first_name,last_name,specialty,department_id,years_experience
-1,Tracie,Wyatt,Dermatologist,2,1
-2,Michelle,James,General Practitioner,5,8
-3,Shawn,Flowers,Pediatrician,4,5
-4,Francisco,Kelly,Dermatologist,2,22
-5,Elizabeth,Miles,Dermatologist,2,19
-6,Frances,Jones,ENT Specialist,7,2
-7,Cynthia,Ferguson,Cardiologist,1,3
-8,John,Ford,Pediatrician,4,8
-9,Joseph,Schaefer,Cardiologist,1,18
-10,Hailey,Robinson,Pediatrician,4,23
-11,Mark,Tate,ENT Specialist,7,8
-12,Brian,Underwood,Dentist,8,19
-13,Linda,Morales,General Practitioner,5,26
-14,Carl,Gentry,Cardiologist,1,25
-15,Ashley,Robbins,Orthopedic Surgeon,3,23
-16,Jason,Porter,ENT Specialist,7,11
-17,Nicole,Day,General Practitioner,5,5
-18,Douglas,Taylor,Pediatrician,4,25
-19,Julie,Ryan,Physiotherapist,6,4
-20,Julie,Patterson,Dermatologist,2,13
-21,Brandy,Cox,Dermatologist,2,12
-22,Wendy,Taylor,Physiotherapist,6,20
-23,Trevor,Campos,General Practitioner,5,26
-24,Michelle,Hernandez,Cardiologist,1,24
-25,Ernest,Becker,Dentist,8,18
-26,Candace,Cruz,Dermatologist,2,30
-27,Caitlin,Mcdonald,ENT Specialist,7,3
-28,John,Tran,General Practitioner,5,27
-29,Sherri,Frazier,Physiotherapist,6,19
-30,Danny,Dyer,Pediatrician,4,23
-31,Karen,Mack,Dermatologist,2,2
-32,Matthew,Carter,Pediatrician,4,25
-33,Eric,Smith,General Practitioner,5,3
-34,Jennifer,Cortez,Pediatrician,4,28
-35,Teresa,Gill,Dermatologist,2,13
-36,William,Rodriguez,General Practitioner,5,15
-37,Colleen,Skinner,Physiotherapist,6,6
-38,William,Gonzalez,Physiotherapist,6,12
+1,Tracie,Wyatt,Pediatrician,4,8
+2,Michelle,James,Cardiologist,1,18
+3,Shawn,Flowers,Pediatrician,4,23
+4,Francisco,Kelly,ENT Specialist,7,8
+5,Elizabeth,Miles,Dentist,8,19
+6,Frances,Jones,General Practitioner,5,26
+7,Cynthia,Ferguson,Cardiologist,1,25
+8,John,Ford,Orthopedic Surgeon,3,23
+9,Joseph,Schaefer,ENT Specialist,7,11
+10,Hailey,Robinson,General Practitioner,5,5
+11,Mark,Tate,Pediatrician,4,25
+12,Brian,Underwood,Physiotherapist,6,4
+13,Linda,Morales,Dermatologist,2,13
+14,Carl,Gentry,Dermatologist,2,12
+15,Ashley,Robbins,Physiotherapist,6,20
+16,Jason,Porter,General Practitioner,5,26
+17,Nicole,Day,Cardiologist,1,24
+18,Douglas,Taylor,Dentist,8,18
+19,Julie,Ryan,Dermatologist,2,30
+20,Julie,Patterson,ENT Specialist,7,3
+21,Brandy,Cox,General Practitioner,5,27
+22,Wendy,Taylor,Physiotherapist,6,19
+23,Trevor,Campos,Pediatrician,4,23
+24,Michelle,Hernandez,Dermatologist,2,2
+25,Ernest,Becker,Pediatrician,4,25
+26,Candace,Cruz,General Practitioner,5,3
+27,Caitlin,Mcdonald,Pediatrician,4,28
+28,John,Tran,Dermatologist,2,13
+29,Sherri,Frazier,General Practitioner,5,15
+30,Danny,Dyer,Physiotherapist,6,6
+31,Karen,Mack,Physiotherapist,6,12
+32,Matthew,Carter,Pediatrician,4,22
+33,Eric,Smith,General Practitioner,5,23
+34,Jennifer,Cortez,Dermatologist,2,20
+35,Teresa,Gill,Orthopedic Surgeon,3,18
+36,William,Rodriguez,Pediatrician,4,6
+37,Colleen,Skinner,Dentist,8,13
+38,William,Gonzalez,General Practitioner,5,30
 39,Nathaniel,Martin,Pediatrician,4,22
-40,Stephanie,Nielsen,General Practitioner,5,23
-41,Samantha,George,Dermatologist,2,20
-42,Tracy,Rodriguez,Orthopedic Surgeon,3,18
-43,Michael,Galloway,Pediatrician,4,6
-44,Lindsay,Allen,Dentist,8,13
-45,John,Bradley,General Practitioner,5,30
-46,Christian,Dennis,Pediatrician,4,22
-47,Lisa,Spence,Physiotherapist,6,27
-48,Amanda,Martinez,Cardiologist,1,8
-49,Donna,Arroyo,Cardiologist,1,26
-50,Frederick,Rose,Physiotherapist,6,13
-51,Catherine,Brandt,General Practitioner,5,3
-52,Sarah,Campos,Pediatrician,4,30
-53,Hannah,Marquez,Physiotherapist,6,7
-54,Raymond,Powers,Dentist,8,13
-55,Nathaniel,Lam,Dentist,8,5
-56,Shannon,Wright,General Practitioner,5,5
-57,Caleb,Smith,Pediatrician,4,24
-58,Angela,Chapman,General Practitioner,5,24
-59,Adrian,Zimmerman,ENT Specialist,7,29
-60,Brian,Jones,ENT Specialist,7,12
-61,Anthony,Rivera,Pediatrician,4,5
-62,Willie,Ramirez,Dentist,8,3
-63,Todd,Ryan,Cardiologist,1,28
-64,Jennifer,Khan,Dermatologist,2,5
-65,Barbara,Sanchez,Orthopedic Surgeon,3,26
-66,Thomas,Russell,ENT Specialist,7,20
-67,Clinton,Hopkins,Dermatologist,2,13
-68,Michael,Jenkins,ENT Specialist,7,20
-69,Michelle,Brown,Dentist,8,17
-70,Denise,Lucas,General Practitioner,5,18
-71,Bruce,Chandler,Cardiologist,1,22
-72,Lauren,Rodriguez,Dermatologist,2,22
-73,James,Herrera,General Practitioner,5,25
-74,Donald,White,Physiotherapist,6,4
-75,Steven,Baxter,General Practitioner,5,14
-76,Charles,Morton,Orthopedic Surgeon,3,15
-77,Melissa,Garcia,Cardiologist,1,24
-78,Denise,Fernandez,General Practitioner,5,17
-79,Alexis,Davis,Orthopedic Surgeon,3,17
-80,Karen,Young,Dermatologist,2,28
+40,Stephanie,Nielsen,Physiotherapist,6,27
+41,Samantha,George,Cardiologist,1,8
+42,Tracy,Rodriguez,Cardiologist,1,26
+43,Michael,Galloway,Physiotherapist,6,13
+44,Lindsay,Allen,General Practitioner,5,3
+45,John,Bradley,Pediatrician,4,30
+46,Christian,Dennis,Physiotherapist,6,7
+47,Lisa,Spence,Dentist,8,13
+48,Amanda,Martinez,Dentist,8,5
+49,Donna,Arroyo,General Practitioner,5,5
+50,Frederick,Rose,Pediatrician,4,24
+51,Catherine,Brandt,General Practitioner,5,24
+52,Sarah,Campos,ENT Specialist,7,29
+53,Hannah,Marquez,ENT Specialist,7,12
+54,Raymond,Powers,Pediatrician,4,5
+55,Nathaniel,Lam,Dentist,8,3
+56,Shannon,Wright,Cardiologist,1,28
+57,Caleb,Smith,Dermatologist,2,5
+58,Angela,Chapman,Orthopedic Surgeon,3,26
+59,Adrian,Zimmerman,ENT Specialist,7,20
+60,Brian,Jones,Dermatologist,2,13
+61,Anthony,Rivera,ENT Specialist,7,20
+62,Willie,Ramirez,Dentist,8,17
+63,Todd,Ryan,General Practitioner,5,18
+64,Jennifer,Khan,Cardiologist,1,22
+65,Barbara,Sanchez,Dermatologist,2,22
+66,Thomas,Russell,General Practitioner,5,25
+67,Clinton,Hopkins,Physiotherapist,6,4
+68,Michael,Jenkins,General Practitioner,5,14
+69,Michelle,Brown,Orthopedic Surgeon,3,15
+70,Denise,Lucas,Cardiologist,1,24
+71,Bruce,Chandler,General Practitioner,5,17
+72,Lauren,Rodriguez,Orthopedic Surgeon,3,17
+73,James,Herrera,Dermatologist,2,28
+74,Donald,White,General Practitioner,5,27
+75,Steven,Baxter,Pediatrician,4,5
+76,Charles,Morton,Physiotherapist,6,25
+77,Melissa,Garcia,Orthopedic Surgeon,3,18
+78,Denise,Fernandez,Cardiologist,1,20
+79,Alexis,Davis,Physiotherapist,6,16
+80,Karen,Young,Cardiologist,1,4

@@ -50,7 +50,7 @@ export default function Doctors() {
           <h1 className="text-2xl font-extrabold text-gray-900">Doctors</h1>
           <p className="text-gray-500">Staff directory, organized by specialty.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
+        <button onClick={() => setOpen(true)} className="glass-action flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
           <Plus size={16} /> Add Doctor
         </button>
       </div>
@@ -75,7 +75,7 @@ export default function Doctors() {
         </select>
       </div>
 
-      <DataTable columns={COLUMNS} rows={rows} page={page} perPage={perPage} total={total} onPageChange={setPage} />
+      <DataTable columns={COLUMNS} rows={rows} page={page} perPage={perPage} total={total} onPageChange={setPage} resource="doctors" idKey="doctor_id" onChanged={load} />
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add Doctor">
         <form onSubmit={submit} className="space-y-3">
@@ -88,7 +88,7 @@ export default function Doctors() {
             <option value="">Select department</option>
             {departments.map((d) => <option key={d.department_id} value={d.department_id}>{d.name}</option>)}
           </select>
-          <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
+          <button type="submit" className="glass-action w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
         </form>
       </Modal>
     </div>

@@ -50,7 +50,7 @@ export default function LabTests() {
           <h1 className="text-2xl font-extrabold text-gray-900">Lab Tests</h1>
           <p className="text-gray-500">Requested services and their results.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
+        <button onClick={() => setOpen(true)} className="glass-action flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
           <Plus size={16} /> Add Lab Test
         </button>
       </div>
@@ -68,7 +68,7 @@ export default function LabTests() {
         </select>
       </div>
 
-      <DataTable columns={COLUMNS} rows={items} page={page} perPage={perPage} total={total} onPageChange={setPage} />
+      <DataTable columns={COLUMNS} rows={items} page={page} perPage={perPage} total={total} onPageChange={setPage} resource="lab_tests" idKey="lab_test_id" onChanged={load} />
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add Lab Test">
         <form onSubmit={submit} className="space-y-3">
@@ -85,7 +85,7 @@ export default function LabTests() {
             <option>Pending</option>
           </select>
           <input type="date" value={form.test_date} onChange={(e) => setForm({ ...form, test_date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
-          <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
+          <button type="submit" className="glass-action w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
         </form>
       </Modal>
     </div>

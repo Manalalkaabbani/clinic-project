@@ -50,7 +50,7 @@ export default function Patients() {
           <h1 className="text-2xl font-extrabold text-gray-900">Patients</h1>
           <p className="text-gray-500">Patient directory and registration.</p>
         </div>
-        <button onClick={() => setOpen(true)} className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
+        <button onClick={() => setOpen(true)} className="glass-action flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white px-4 py-2.5 rounded-xl font-medium text-sm">
           <Plus size={16} /> Add Patient
         </button>
       </div>
@@ -65,7 +65,7 @@ export default function Patients() {
         />
       </div>
 
-      <DataTable columns={COLUMNS} rows={rows} page={page} perPage={perPage} total={total} onPageChange={setPage} />
+      <DataTable columns={COLUMNS} rows={rows} page={page} perPage={perPage} total={total} onPageChange={setPage} resource="patients" idKey="patient_id" onChanged={load} />
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add Patient">
         <form onSubmit={submit} className="space-y-3">
@@ -85,7 +85,7 @@ export default function Patients() {
             <option value="">Self-pay (no insurance)</option>
             {insuranceOptions.map((i) => <option key={i.insurance_id} value={i.insurance_id}>{i.provider_name}</option>)}
           </select>
-          <button type="submit" className="w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
+          <button type="submit" className="glass-action w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
         </form>
       </Modal>
     </div>

@@ -8,11 +8,15 @@ Chain: Departments -> Doctors -> Patients (via Insurance) ->
        Diagnoses -> Billing -> Lab Tests (requested services)
 """
 
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from datetime import date, datetime
+import io
 import os
+import zipfile
+
+import pandas as pd
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DB_PATH = os.path.join(BASE_DIR, "clinic.db")
@@ -175,6 +179,55 @@ def get_page_params():
     page = int(request.args.get("page", 1))
     per_page = min(int(request.args.get("per_page", 50)), 200)
     return page, per_page
+
+
+RECORD_MODELS = {
+    "departments": (Department, "department_id"),
+    "doctors": (Doctor, "doctor_id"),
+    "insurance_providers": (InsuranceProvider, "insurance_id"),
+    "patients": (Patient, "patient_id"),
+    "diagnoses": (Diagnosis, "diagnosis_id"),
+    "billing": (Billing, "billing_id"),
+    "lab_tests": (LabTest, "lab_test_id"),
+}
+
+
+@app.route("/api/records/<table>/<int:record_id>", methods=["PUT", "DELETE"])
+def modify_record(table, record_id):
+    config = RECORD_MODELS.get(table)
+    if not config:
+        return jsonify({"error": "invalid table name"}), 404
+
+    model, id_field = config
+    record = db.session.get(model, record_id)
+    if not record:
+        return jsonify({"error": "record not found"}), 404
+
+    if request.method == "DELETE":
+        db.session.delete(record)
+        try:
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            return jsonify({"error": "record cannot be deleted because it is referenced by another record"}), 409
+        return jsonify({"message": "Record deleted"})
+
+    data = request.get_json(silent=True) or {}
+    editable_fields = {
+        column.name for column in model.__table__.columns
+        if not column.primary_key
+    }
+    updates = {key: value for key, value in data.items() if key in editable_fields}
+    if not updates:
+        return jsonify({"error": "no editable fields supplied"}), 400
+    for key, value in updates.items():
+        setattr(record, key, value)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+        return jsonify({"error": "record could not be updated"}), 400
+    return jsonify(record.to_dict())
 
 
 # ============================================================
@@ -413,6 +466,44 @@ def lab_tests():
 def insurance_providers():
     items = InsuranceProvider.query.all()
     return jsonify([i.to_dict() for i in items])
+
+
+# ============================================================
+# CSV IMPORT / EXPORT
+# ============================================================
+ALL_TABLES = [
+    "departments", "doctors", "insurance_providers", "patients",
+    "diagnoses", "billing", "lab_tests",
+]
+
+
+@app.route("/api/export/csv")
+def export_csv():
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w") as zf:
+        for table in ALL_TABLES:
+            df = pd.read_sql_table(table, db.engine)
+            zf.writestr(f"{table}.csv", df.to_csv(index=False).encode("utf-8"))
+    buffer.seek(0)
+    return send_file(
+        buffer,
+        mimetype="application/zip",
+        as_attachment=True,
+        download_name="clinic_data.zip",
+    )
+
+
+@app.route("/api/import/csv", methods=["POST"])
+def import_csv():
+    table = request.form.get("table")
+    file = request.files.get("file")
+    if not table or not file:
+        return jsonify({"error": "table and file are required"}), 400
+    if table not in ALL_TABLES:
+        return jsonify({"error": "invalid table name"}), 400
+    df = pd.read_csv(file)
+    df.to_sql(table, db.engine, if_exists="append", index=False)
+    return jsonify({"message": f"Imported {len(df)} rows into {table}"}), 201
 
 
 if __name__ == "__main__":
