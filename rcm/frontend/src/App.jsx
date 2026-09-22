@@ -7,6 +7,7 @@ import Patients from "./pages/Patients";
 import Diagnoses from "./pages/Diagnoses";
 import Payments from "./pages/Payments";
 import LabTests from "./pages/LabTests";
+import Appointments from "./pages/Appointments";
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
             <Route path="/diagnoses" element={<Diagnoses />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/lab-tests" element={<LabTests />} />
+            <Route path="/appointments" element={<Appointments />} />
           </Routes>
         </main>
       </div>

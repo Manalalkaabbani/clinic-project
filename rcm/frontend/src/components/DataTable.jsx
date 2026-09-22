@@ -12,6 +12,7 @@ const FIELD_OPTIONS = {
   payment_method: ["Cash", "Card", "Insurance"],
   result_status: ["Normal", "Abnormal", "Pending"],
   test_type: ["Blood Panel", "X-Ray", "MRI", "Urine Test", "ECG"],
+  status: ["Attended", "No-show", "Scheduled", "Cancelled"],
 };
 
 export default function DataTable({ columns, rows, page, perPage, total, onPageChange, resource, idKey, onChanged }) {

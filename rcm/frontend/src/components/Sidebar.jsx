@@ -1,7 +1,7 @@
 import { NavLink } from "react-router-dom";
 import {
   LayoutDashboard, Building2, Stethoscope, Users, ClipboardList,
-  CreditCard, FlaskConical, HeartPulse,
+  CreditCard, FlaskConical, CalendarDays, HeartPulse,
 } from "lucide-react";
 import DataTransfer from "./DataTransfer";
 
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { to: "/diagnoses", label: "Diagnoses", icon: ClipboardList },
   { to: "/payments", label: "Payments", icon: CreditCard },
   { to: "/lab-tests", label: "Lab Tests", icon: FlaskConical },
+  { to: "/appointments", label: "Appointments", icon: CalendarDays },
 ];
 
 export default function Sidebar() {

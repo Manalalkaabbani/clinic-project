@@ -166,6 +166,30 @@ class LabTest(db.Model):
         }
 
 
+class Appointment(db.Model):
+    __tablename__ = "appointments"
+    appointment_id = db.Column(db.Integer, primary_key=True)
+    patient_id = db.Column(db.Integer, nullable=False)
+    doctor_id = db.Column(db.Integer, nullable=False)
+    nurse_id = db.Column(db.Integer, nullable=False)
+    room_id = db.Column(db.Integer, nullable=False)
+    appointment_date = db.Column(db.String, nullable=False)
+    status = db.Column(db.String, nullable=False)
+
+    def to_dict(self):
+        patient = Patient.query.get(self.patient_id)
+        doctor = Doctor.query.get(self.doctor_id)
+        return {
+            "appointment_id": self.appointment_id,
+            "patient_id": self.patient_id,
+            "patient_name": f"{patient.first_name} {patient.last_name}" if patient else None,
+            "doctor_id": self.doctor_id,
+            "doctor_name": f"Dr. {doctor.first_name} {doctor.last_name}" if doctor else None,
+            "nurse_id": self.nurse_id, "room_id": self.room_id,
+            "appointment_date": self.appointment_date, "status": self.status,
+        }
+
+
 # ============================================================
 # HELPERS
 # ============================================================
@@ -189,6 +213,7 @@ RECORD_MODELS = {
     "diagnoses": (Diagnosis, "diagnosis_id"),
     "billing": (Billing, "billing_id"),
     "lab_tests": (LabTest, "lab_test_id"),
+    "appointments": (Appointment, "appointment_id"),
 }
 
 
@@ -459,6 +484,28 @@ def lab_tests():
     return jsonify({"items": [i.to_dict() for i in items], "total": total, "page": page, "per_page": per_page})
 
 
+@app.route("/api/appointments", methods=["GET", "POST"])
+def appointments():
+    if request.method == "POST":
+        data = request.get_json()
+        appointment = Appointment(
+            patient_id=data["patient_id"], doctor_id=data["doctor_id"],
+            nurse_id=data["nurse_id"], room_id=data["room_id"],
+            appointment_date=data["appointment_date"], status=data["status"],
+        )
+        db.session.add(appointment)
+        db.session.commit()
+        return jsonify(appointment.to_dict()), 201
+
+    query = Appointment.query
+    status = request.args.get("status")
+    if status:
+        query = query.filter(Appointment.status == status)
+    page, per_page = get_page_params()
+    items, total = paginate(query.order_by(Appointment.appointment_id.desc()), page, per_page)
+    return jsonify({"items": [item.to_dict() for item in items], "total": total, "page": page, "per_page": per_page})
+
+
 # ============================================================
 # INSURANCE PROVIDERS (for dropdowns)
 # ============================================================
@@ -473,7 +520,7 @@ def insurance_providers():
 # ============================================================
 ALL_TABLES = [
     "departments", "doctors", "insurance_providers", "patients",
-    "diagnoses", "billing", "lab_tests",
+    "diagnoses", "billing", "lab_tests", "appointments",
 ]
 
 
