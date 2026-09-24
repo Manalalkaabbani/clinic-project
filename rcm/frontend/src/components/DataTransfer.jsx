@@ -11,6 +11,7 @@ const TABLES = [
   "diagnoses",
   "billing",
   "lab_tests",
+  "appointments",
 ];
 
 export default function DataTransfer() {
@@ -21,16 +22,17 @@ export default function DataTransfer() {
 
   const handleImport = async (event) => {
     event.preventDefault();
-    if (!file) return;
+    if (!file) {
+      setStatus("Please choose a CSV file first.");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("table", table);
     formData.append("file", file);
 
     try {
-      const response = await api.post("/import/csv", formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+      const response = await api.post("/import/csv", formData);
       setStatus(response.data.message);
     } catch (error) {
       setStatus(error.response?.data?.error || "Import failed");

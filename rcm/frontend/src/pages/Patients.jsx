@@ -18,19 +18,40 @@ export default function Patients() {
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const [gender, setGender] = useState("");
+  const [city, setCity] = useState("");
+  const [insuranceId, setInsuranceId] = useState("");
+  const [cityOptions, setCityOptions] = useState([]);
   const [insuranceOptions, setInsuranceOptions] = useState([]);
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ first_name: "", last_name: "", dob: "", gender: "Male", city: "", insurance_id: "" });
   const perPage = 10;
 
-  useEffect(() => { api.get("/insurance_providers").then((res) => setInsuranceOptions(res.data)); }, []);
+  useEffect(() => {
+    api.get("/insurance_providers").then((res) => setInsuranceOptions(res.data));
+    api.get("/patient-options").then((res) => setCityOptions(res.data.cities));
+  }, []);
 
   const load = () => {
-    api.get("/patients", { params: { page, per_page: perPage, search: search || undefined } })
+    api.get("/patients", {
+      params: {
+        page,
+        per_page: perPage,
+        search: search || undefined,
+        gender: gender || undefined,
+        city: city || undefined,
+        insurance_id: insuranceId || undefined,
+      },
+    })
       .then((res) => { setItems(res.data.items); setTotal(res.data.total); });
   };
 
-  useEffect(() => { load(); }, [page, search]);
+  useEffect(() => { load(); }, [page, search, gender, city, insuranceId]);
+
+  const updateFilter = (setter) => (event) => {
+    setPage(1);
+    setter(event.target.value);
+  };
 
   const rows = items.map((p) => ({ ...p, patient_name: `${p.first_name} ${p.last_name}` }));
 
@@ -55,7 +76,8 @@ export default function Patients() {
         </button>
       </div>
 
-      <div className="relative max-w-md">
+      <div className="flex flex-wrap items-center gap-3">
+        <div className="relative min-w-64 max-w-md flex-1">
         <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
         <input
           value={search}
@@ -63,6 +85,21 @@ export default function Patients() {
           placeholder="Search by name or city…"
           className="w-full pl-9 pr-3 py-2.5 rounded-xl border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500"
         />
+        </div>
+        <select value={gender} onChange={updateFilter(setGender)} aria-label="Filter by gender" className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700">
+          <option value="">All genders</option>
+          <option value="Male">Male</option>
+          <option value="Female">Female</option>
+        </select>
+        <select value={city} onChange={updateFilter(setCity)} aria-label="Filter by city" className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700">
+          <option value="">All cities</option>
+          {cityOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+        </select>
+        <select value={insuranceId} onChange={updateFilter(setInsuranceId)} aria-label="Filter by insurance" className="rounded-xl border border-gray-200 px-3 py-2.5 text-sm text-gray-700">
+          <option value="">All insurance</option>
+          <option value="none">Self-pay</option>
+          {insuranceOptions.map((option) => <option key={option.insurance_id} value={option.insurance_id}>{option.provider_name}</option>)}
+        </select>
       </div>
 
       <DataTable columns={COLUMNS} rows={rows} page={page} perPage={perPage} total={total} onPageChange={setPage} resource="patients" idKey="patient_id" onChanged={load} />

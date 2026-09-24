@@ -426,16 +426,30 @@ def patients():
 
     q = Patient.query
     search = request.args.get("search")
+    gender = request.args.get("gender")
     city = request.args.get("city")
+    insurance_id = request.args.get("insurance_id")
     if search:
         like = f"%{search}%"
         q = q.filter(db.or_(Patient.first_name.ilike(like), Patient.last_name.ilike(like), Patient.city.ilike(like)))
+    if gender:
+        q = q.filter(Patient.gender == gender)
     if city:
         q = q.filter(Patient.city == city)
+    if insurance_id == "none":
+        q = q.filter(Patient.insurance_id.is_(None))
+    elif insurance_id:
+        q = q.filter(Patient.insurance_id == int(insurance_id))
 
     page, per_page = get_page_params()
     items, total = paginate(q.order_by(Patient.patient_id.desc()), page, per_page)
     return jsonify({"items": [i.to_dict() for i in items], "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/patient-options")
+def patient_options():
+    cities = db.session.query(Patient.city).distinct().order_by(Patient.city).all()
+    return jsonify({"cities": [city for (city,) in cities if city]})
 
 
 # ============================================================
@@ -592,8 +606,32 @@ def import_csv():
         return jsonify({"error": "table and file are required"}), 400
     if table not in ALL_TABLES:
         return jsonify({"error": "invalid table name"}), 400
-    df = pd.read_csv(file)
-    df.to_sql(table, db.engine, if_exists="append", index=False)
+
+    model, _ = RECORD_MODELS[table]
+    try:
+        df = pd.read_csv(file)
+    except Exception as exc:
+        return jsonify({"error": f"could not read CSV file: {exc}"}), 400
+
+    table_columns = {column.name: column for column in model.__table__.columns}
+    missing = [
+        column.name for column in model.__table__.columns
+        if not column.primary_key and not column.nullable and column.default is None
+        and column.name not in df.columns
+    ]
+    if missing:
+        return jsonify({"error": f"CSV is missing required columns: {', '.join(missing)}"}), 400
+
+    supported_columns = [column for column in df.columns if column in table_columns]
+    if not supported_columns:
+        return jsonify({"error": f"CSV has no columns for the {table} table"}), 400
+
+    df = df[supported_columns]
+    try:
+        df.to_sql(table, db.engine, if_exists="append", index=False)
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"error": f"import failed: {exc}"}), 400
     return jsonify({"message": f"Imported {len(df)} rows into {table}"}), 201
 
 
