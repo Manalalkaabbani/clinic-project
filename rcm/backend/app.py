@@ -260,18 +260,55 @@ def modify_record(table, record_id):
 # ============================================================
 @app.route("/api/dashboard/summary")
 def dashboard_summary():
-    total_revenue = db.session.query(db.func.sum(Billing.amount)).scalar() or 0
-    total_diagnoses = Diagnosis.query.count()
-    total_patients = Patient.query.count()
+    date_from = request.args.get("date_from")
+    date_to = request.args.get("date_to")
+    insurance_id = request.args.get("insurance_id", type=int)
+    department = request.args.get("department")
+    payment_status = request.args.get("payment_status")
+
+    filtered_billing = db.session.query(Billing).join(
+        Diagnosis, Billing.diagnosis_id == Diagnosis.diagnosis_id
+    ).join(
+        Patient, Diagnosis.patient_id == Patient.patient_id
+    ).join(
+        Doctor, Diagnosis.doctor_id == Doctor.doctor_id
+    ).join(
+        Department, Doctor.department_id == Department.department_id
+    )
+    if date_from:
+        filtered_billing = filtered_billing.filter(Billing.billing_date >= date_from)
+    if date_to:
+        filtered_billing = filtered_billing.filter(Billing.billing_date <= date_to)
+    if insurance_id:
+        filtered_billing = filtered_billing.filter(Patient.insurance_id == insurance_id)
+    if department and department != "All departments":
+        filtered_billing = filtered_billing.filter(Department.name == department)
+    if payment_status and payment_status != "All statuses":
+        filtered_billing = filtered_billing.filter(Billing.payment_status == payment_status)
+
+    billing_ids = filtered_billing.with_entities(Billing.billing_id).subquery()
+    diagnosis_ids = filtered_billing.with_entities(Billing.diagnosis_id).subquery()
+    patient_ids = filtered_billing.with_entities(Diagnosis.patient_id).subquery()
+
+    total_revenue = filtered_billing.with_entities(db.func.sum(Billing.amount)).scalar() or 0
+    total_diagnoses = db.session.query(Diagnosis).filter(
+        Diagnosis.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id))
+    ).count()
+    total_patients = db.session.query(Patient).filter(
+        Patient.patient_id.in_(db.select(patient_ids.c.patient_id))
+    ).count()
     total_doctors = Doctor.query.count()
-    overdue_count = Billing.query.filter_by(payment_status="Overdue").count()
-    total_bills = Billing.query.count()
+    overdue_count = filtered_billing.filter(Billing.payment_status == "Overdue").count()
+    total_bills = filtered_billing.count()
     overdue_rate = round(100 * overdue_count / total_bills, 1) if total_bills else 0
-    severe_count = Diagnosis.query.filter_by(severity="Severe").count()
+    severe_count = db.session.query(Diagnosis).filter(
+        Diagnosis.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id)),
+        Diagnosis.severity == "Severe",
+    ).count()
     lab_test_count = LabTest.query.count()
 
     # revenue by month
-    rows = db.session.query(Billing.billing_date, Billing.amount).all()
+    rows = filtered_billing.with_entities(Billing.billing_date, Billing.amount).all()
     monthly = {}
     for bdate, amount in rows:
         month = bdate[:7] if bdate else "unknown"
@@ -279,7 +316,9 @@ def dashboard_summary():
     monthly_revenue = [{"month": m, "amount": round(a, 2)} for m, a in sorted(monthly.items())]
 
     # payment status breakdown
-    status_rows = db.session.query(Billing.payment_status, db.func.count(Billing.billing_id)).group_by(Billing.payment_status).all()
+    status_rows = filtered_billing.with_entities(
+        Billing.payment_status, db.func.count(Billing.billing_id)
+    ).group_by(Billing.payment_status).all()
     payment_status = [{"status": s, "count": c} for s, c in status_rows]
 
     # revenue by department
@@ -288,6 +327,8 @@ def dashboard_summary():
         .join(Doctor, Doctor.department_id == Department.department_id)
         .join(Diagnosis, Diagnosis.doctor_id == Doctor.doctor_id)
         .join(Billing, Billing.diagnosis_id == Diagnosis.diagnosis_id)
+        .join(Patient, Diagnosis.patient_id == Patient.patient_id)
+        .filter(Billing.billing_id.in_(db.select(billing_ids.c.billing_id)))
         .group_by(Department.name)
         .order_by(db.func.sum(Billing.amount).desc())
         .all()
@@ -297,6 +338,9 @@ def dashboard_summary():
     # top diagnoses
     diag_rows = (
         db.session.query(Diagnosis.description, db.func.count(Diagnosis.diagnosis_id))
+        .join(Billing, Billing.diagnosis_id == Diagnosis.diagnosis_id)
+        .join(Patient, Diagnosis.patient_id == Patient.patient_id)
+        .filter(Billing.billing_id.in_(db.select(billing_ids.c.billing_id)))
         .group_by(Diagnosis.description)
         .order_by(db.func.count(Diagnosis.diagnosis_id).desc())
         .limit(6)

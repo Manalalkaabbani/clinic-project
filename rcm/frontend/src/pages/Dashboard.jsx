@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import api from "../api";
 import KpiCard from "../components/KpiCard";
 import {
-  DollarSign, ClipboardList, Users, AlertTriangle, RefreshCw, TrendingUp, CheckCircle2,
+  DollarSign, ClipboardList, Users, AlertTriangle, RefreshCw, TrendingUp, CheckCircle2, CalendarDays,
 } from "lucide-react";
 import {
   ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -11,25 +11,67 @@ import {
 
 const COLORS = ["#2563EB", "#60A5FA", "#1D4ED8", "#93C5FD", "#3B82F6", "#1E40AF"];
 const STATUS_COLORS = { Paid: "#10B981", Pending: "#F59E0B", Overdue: "#EF4444" };
+const DATE_FILTERS = [
+  { label: "All time", days: null },
+  { label: "Today", days: 0 },
+  { label: "Yesterday", days: 1 },
+  { label: "Last week", days: 7 },
+  { label: "Last month", months: 1 },
+  { label: "Last 3 months", months: 3 },
+  { label: "Last 6 months", months: 6 },
+  { label: "Last year", months: 12 },
+];
 
-export default function Dashboard() {
+function getDateRange(filter) {
+  if (filter.days === null) return {};
+  const end = new Date();
+  const start = new Date(end);
+  if (filter.months) {
+    start.setMonth(start.getMonth() - filter.months);
+  } else {
+    start.setDate(start.getDate() - filter.days);
+  }
+
+  return {
+    date_from: start.toISOString().slice(0, 10),
+    date_to: end.toISOString().slice(0, 10),
+  };
+}
+
+export default function Dashboard({ userName, onChangeName }) {
   const [data, setData] = useState(null);
   const [period, setPeriod] = useState(12);
   const [department, setDepartment] = useState("All departments");
   const [status, setStatus] = useState("All statuses");
+  const [dateFilter, setDateFilter] = useState("All time");
+  const [insurance, setInsurance] = useState("");
+  const [insuranceOptions, setInsuranceOptions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const loadDashboard = () => {
+  const loadDashboard = useCallback(() => {
     setLoading(true);
     setError("");
-    api.get("/dashboard/summary")
+    const selectedDateFilter = DATE_FILTERS.find((option) => option.label === dateFilter);
+    const dateRange = getDateRange(selectedDateFilter || DATE_FILTERS[0]);
+    api.get("/dashboard/summary", {
+      params: {
+        ...dateRange,
+        insurance_id: insurance || undefined,
+        department: department !== "All departments" ? department : undefined,
+        payment_status: status !== "All statuses" ? status : undefined,
+      },
+    })
       .then((res) => setData(res.data))
       .catch(() => setError("Unable to load dashboard data. Check that the API is running."))
       .finally(() => setLoading(false));
-  };
+  }, [dateFilter, insurance, department, status]);
 
-  useEffect(() => { loadDashboard(); }, []);
+  useEffect(() => {
+    api.get("/insurance_providers").then((res) => setInsuranceOptions(res.data));
+  }, []);
+
+  useEffect(() => { loadDashboard(); }, [loadDashboard]);
 
   const visibleRevenue = useMemo(
     () => data?.monthly_revenue?.slice(-period) || [],
@@ -79,7 +121,15 @@ export default function Dashboard() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Clinic overview</p>
-          <h1 className="text-2xl font-extrabold text-gray-900">Hello, Manal 👋</h1>
+          <div className="flex flex-wrap items-center gap-2">
+            <h1 className="text-2xl font-extrabold text-gray-900">Hello, {userName || "there"} 👋</h1>
+            <button
+              onClick={onChangeName}
+              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
+            >
+              Change name
+            </button>
+          </div>
           <p className="text-gray-500">Here's what's happening across the clinic.</p>
         </div>
         <div className="flex items-center gap-2">
@@ -103,7 +153,16 @@ export default function Dashboard() {
       {error && <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">{error}</div>}
 
       <div className="glass-panel flex flex-col gap-4 rounded-2xl p-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <label className="text-xs font-semibold text-gray-500">
+            Date range
+            <span className="relative mt-1 block">
+              <CalendarDays size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-brand-500" />
+              <select value={dateFilter} onChange={(event) => setDateFilter(event.target.value)} className="block w-full min-w-0 rounded-xl border border-blue-100 bg-white/70 py-2 pl-9 pr-3 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+                {DATE_FILTERS.map((option) => <option key={option.label}>{option.label}</option>)}
+              </select>
+            </span>
+          </label>
           <label className="text-xs font-semibold text-gray-500">
             Department
             <select value={department} onChange={(event) => setDepartment(event.target.value)} className="mt-1 block w-full min-w-0 rounded-xl border border-blue-100 bg-white/70 px-3 py-2 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
@@ -114,6 +173,13 @@ export default function Dashboard() {
             Payment status
             <select value={status} onChange={(event) => setStatus(event.target.value)} className="mt-1 block w-full min-w-0 rounded-xl border border-blue-100 bg-white/70 px-3 py-2 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
               {statusOptions.map((option) => <option key={option}>{option}</option>)}
+            </select>
+          </label>
+          <label className="text-xs font-semibold text-gray-500">
+            Insurance provider
+            <select value={insurance} onChange={(event) => setInsurance(event.target.value)} className="mt-1 block w-full min-w-0 rounded-xl border border-blue-100 bg-white/70 px-3 py-2 text-sm font-medium text-gray-800 outline-none transition focus:border-brand-500 focus:ring-2 focus:ring-brand-100">
+              <option value="">All insurers</option>
+              {insuranceOptions.map((option) => <option key={option.insurance_id} value={option.insurance_id}>{option.provider_name}</option>)}
             </select>
           </label>
         </div>
@@ -174,7 +240,14 @@ export default function Dashboard() {
           <h3 className="font-semibold text-gray-800 mb-4">Payment Status</h3>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={statusBreakdown} dataKey="count" nameKey="status" innerRadius={55} outerRadius={90} paddingAngle={2}>
+              <Pie
+                data={statusBreakdown}
+                dataKey="count"
+                nameKey="status"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={2}
+              >
                 {statusBreakdown.map((entry, i) => (
                   <Cell key={i} fill={STATUS_COLORS[entry.status] || COLORS[i % COLORS.length]} />
                 ))}
@@ -209,7 +282,14 @@ export default function Dashboard() {
           </div>
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
-              <Pie data={data.top_diagnoses} dataKey="count" nameKey="diagnosis" innerRadius={55} outerRadius={90} paddingAngle={2}>
+              <Pie
+                data={data.top_diagnoses}
+                dataKey="count"
+                nameKey="diagnosis"
+                innerRadius={55}
+                outerRadius={90}
+                paddingAngle={2}
+              >
                 {data.top_diagnoses.map((_, i) => (
                   <Cell key={i} fill={COLORS[i % COLORS.length]} />
                 ))}

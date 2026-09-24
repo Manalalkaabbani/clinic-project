@@ -6,13 +6,75 @@ body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #172554;
-  background:
-    radial-gradient(circle at 8% 0%, rgba(147, 197, 253, 0.34), transparent 34%),
-    radial-gradient(circle at 92% 14%, rgba(191, 219, 254, 0.3), transparent 30%),
-    #F4F7FB;
+  background: #eef3ff;
 }
 
 @layer components {
+  .app-sidebar {
+    background: linear-gradient(180deg, #031b94 0%, #031b94 100%);
+    border-radius: 0 30px 30px 0;
+    box-shadow: 12px 0 30px rgba(47, 70, 220, 0.16);
+  }
+
+  .app-content {
+    min-height: 100vh;
+  }
+
+  .app-topbar {
+    display: flex;
+    align-items: center;
+    min-height: 76px;
+    padding: 1rem 2.5rem;
+  }
+
+  .app-page {
+    min-height: calc(100vh - 76px);
+    margin: 0 2.5rem 2.5rem 1.5rem;
+    padding: 2rem;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 20px 50px rgba(53, 77, 170, 0.1);
+  }
+
+  .app-search {
+    width: 100%;
+    border: 1px solid #e1e8f8;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 0.65rem 1rem 0.65rem 2.25rem;
+    font-size: 0.8rem;
+    outline: none;
+  }
+
+  .app-search:focus {
+    border-color: #8095ff;
+    box-shadow: 0 0 0 3px rgba(49, 82, 245, 0.1);
+  }
+
+  .topbar-icon,
+  .topbar-avatar {
+    display: flex;
+    height: 2.25rem;
+    width: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    color: #64748b;
+    background: rgba(255, 255, 255, 0.75);
+  }
+
+  .topbar-avatar {
+    color: white;
+    background: #031b94;
+  }
+
+  .data-card {
+    border: 1px solid #e8edf7;
+    border-radius: 18px;
+    background: #fff;
+    box-shadow: 0 12px 30px rgba(44, 67, 150, 0.06);
+  }
+
   .glass-panel {
     background: rgba(255, 255, 255, 0.68);
     backdrop-filter: blur(18px);
@@ -26,6 +88,21 @@ body {
     transform: translateY(-2px);
     border-color: rgba(147, 197, 253, 0.72);
     box-shadow: 0 20px 46px rgba(30, 64, 175, 0.13);
+  }
+
+  @media (max-width: 1023px) {
+    .app-sidebar {
+      border-radius: 0 0 24px 24px;
+    }
+
+    .app-topbar {
+      padding: 1rem;
+    }
+
+    .app-page {
+      margin: 0 1rem 1rem;
+      padding: 1rem;
+    }
   }
 
   .glass-action {

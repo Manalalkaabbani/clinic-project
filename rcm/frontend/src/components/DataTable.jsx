@@ -53,11 +53,11 @@ export default function DataTable({ columns, rows, page, perPage, total, onPageC
   };
 
   return (
-    <div className="glass-panel rounded-2xl overflow-hidden">
+    <div className="data-card overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-400 text-xs uppercase tracking-wider border-b border-gray-100">
+            <tr className="text-left text-slate-400 text-[11px] uppercase tracking-[0.12em] border-b border-slate-100">
               {columns.map((c) => (
                 <th key={c.key} className="px-4 py-3 font-semibold">{c.label}</th>
               ))}
@@ -73,9 +73,9 @@ export default function DataTable({ columns, rows, page, perPage, total, onPageC
               </tr>
             )}
             {rows.map((row, i) => (
-              <tr key={i} className="border-b border-blue-50/80 hover:bg-blue-50/50 transition-colors">
+              <tr key={i} className="border-b border-slate-100 transition-colors hover:bg-blue-50/60">
                 {columns.map((c) => (
-                  <td key={c.key} className="px-4 py-3 text-gray-700">
+                  <td key={c.key} className="px-4 py-3 text-slate-700">
                     {c.badge ? <Badge text={row[c.key]} /> : row[c.key]}
                   </td>
                 ))}
@@ -139,7 +139,7 @@ export default function DataTable({ columns, rows, page, perPage, total, onPageC
         message={pendingAction?.type === "delete" ? "Are you sure you want to delete this record?" : "Are you sure you want to save these edits?"}
       />
 
-      <div className="flex items-center justify-between px-4 py-3 border-t border-gray-100 text-sm text-gray-500">
+      <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 text-sm text-slate-500">
         <span>
           Showing {rows.length === 0 ? 0 : (page - 1) * perPage + 1}-{(page - 1) * perPage + rows.length} of {total.toLocaleString()}
         </span>
