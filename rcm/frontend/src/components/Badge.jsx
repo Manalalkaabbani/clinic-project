@@ -1,5 +1,7 @@
 const COLORS = {
   Paid: "bg-green-100 text-green-700",
+  Unpaid: "bg-red-100 text-red-700",
+  Cancelled: "bg-gray-100 text-gray-700",
   Normal: "bg-green-100 text-green-700",
   Mild: "bg-green-100 text-green-700",
   Overdue: "bg-red-100 text-red-700",

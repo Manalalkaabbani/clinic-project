@@ -12,8 +12,6 @@ const COLUMNS = [
   { key: "result_status", label: "Result", badge: true },
 ];
 
-const TEST_TYPES = ["Blood Panel", "X-Ray", "MRI", "Urine Test", "ECG"];
-
 export default function LabTests() {
   const [items, setItems] = useState([]);
   const [total, setTotal] = useState(0);
@@ -21,11 +19,22 @@ export default function LabTests() {
   const [testType, setTestType] = useState("");
   const [result, setResult] = useState("");
   const [diagnoses, setDiagnoses] = useState([]);
+  const [options, setOptions] = useState({ lab_test_types: [], lab_result_statuses: [] });
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ diagnosis_id: "", test_type: "Blood Panel", result_status: "Pending", test_date: "" });
+  const [form, setForm] = useState({ diagnosis_id: "", test_type: "", result_status: "", test_date: "" });
   const perPage = 10;
 
-  useEffect(() => { api.get("/diagnoses", { params: { per_page: 200 } }).then((res) => setDiagnoses(res.data.items)); }, []);
+  useEffect(() => {
+    api.get("/diagnoses", { params: { per_page: 200 } }).then((res) => setDiagnoses(res.data.items));
+    api.get("/options").then((res) => {
+      setOptions(res.data);
+      setForm((current) => ({
+        ...current,
+        test_type: res.data.lab_test_types[0] || "",
+        result_status: res.data.lab_result_statuses[0] || "",
+      }));
+    });
+  }, []);
 
   const load = () => {
     api.get("/lab_tests", { params: { page, per_page: perPage, test_type: testType || undefined, result_status: result || undefined } })
@@ -36,9 +45,9 @@ export default function LabTests() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.diagnosis_id) return;
+    if (!form.diagnosis_id || !form.test_type || !form.result_status) return;
     await api.post("/lab_tests", { ...form, diagnosis_id: parseInt(form.diagnosis_id), test_date: form.test_date || undefined });
-    setForm({ diagnosis_id: "", test_type: "Blood Panel", result_status: "Pending", test_date: "" });
+    setForm({ diagnosis_id: "", test_type: options.lab_test_types[0] || "", result_status: options.lab_result_statuses[0] || "", test_date: "" });
     setOpen(false);
     load();
   };
@@ -58,13 +67,11 @@ export default function LabTests() {
       <div className="flex flex-wrap gap-3">
         <select value={testType} onChange={(e) => { setPage(1); setTestType(e.target.value); }} className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm">
           <option value="">All test types</option>
-          {TEST_TYPES.map((t) => <option key={t}>{t}</option>)}
+          {options.lab_test_types.map((t) => <option key={t}>{t}</option>)}
         </select>
         <select value={result} onChange={(e) => { setPage(1); setResult(e.target.value); }} className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm">
           <option value="">All results</option>
-          <option>Normal</option>
-          <option>Abnormal</option>
-          <option>Pending</option>
+          {options.lab_result_statuses.map((value) => <option key={value}>{value}</option>)}
         </select>
       </div>
 
@@ -77,12 +84,10 @@ export default function LabTests() {
             {diagnoses.map((d) => <option key={d.diagnosis_id} value={d.diagnosis_id}>{d.description} — {d.patient_name}</option>)}
           </select>
           <select value={form.test_type} onChange={(e) => setForm({ ...form, test_type: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            {TEST_TYPES.map((t) => <option key={t}>{t}</option>)}
+            {options.lab_test_types.map((t) => <option key={t}>{t}</option>)}
           </select>
           <select value={form.result_status} onChange={(e) => setForm({ ...form, result_status: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            <option>Normal</option>
-            <option>Abnormal</option>
-            <option>Pending</option>
+            {options.lab_result_statuses.map((value) => <option key={value}>{value}</option>)}
           </select>
           <input type="date" value={form.test_date} onChange={(e) => setForm({ ...form, test_date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <button type="submit" className="glass-action w-full bg-brand-600 hover:bg-brand-700 text-white py-2.5 rounded-lg font-medium text-sm">Save</button>
