@@ -63,11 +63,24 @@ the script assesses all eight application tables, exports full CSV and Pickle
 backups under a unique folder in `analysis_outputs/cleaning_data/backups`, then
 updates the existing `dbo` tables in one transaction. It normalizes observed
 case/whitespace variants, maps the literal coverage value `NULL` to the existing
-`Unknown` category (the SQL column is non-nullable), and sets future patient
-registration dates to SQL `NULL` as of the selected date. It does not delete
-rows, fill unknown clinical/financial values, or remove outliers and possible
-duplicate business events. The transaction verifies row counts and re-reads
-modified values before commit; errors roll the entire update transaction back.
+`Unknown` category (the SQL column is non-nullable), and flags future patient
+registration dates before replacing them with the selected date sentinel.
+Missing patient gender/city values are labeled `Unknown`; missing appointment
+status, diagnosis severity, billing status/method, and lab result status are labeled
+`Not Specified`. These labels identify missing categorical information without
+guessing its real value. To satisfy the selected all-fields-filled policy,
+missing or invalid dates use `2025-01-01`, missing appointment times use
+`00:00:00`, missing billing amounts use `0`, and missing contact/free-text
+values use `Not Specified`. Patients without a recorded insurer are linked to
+one explicit `Unknown / Not Specified` insurance-provider row, preserving the
+foreign key. These are placeholders, not verified facts: exclude or specially
+handle them in date, time, financial, and demographic analysis to avoid
+misleading results. The provider placeholder adds one row to that table.
+
+The script does not delete existing rows or remove outliers and possible
+duplicate business events. The transaction verifies row counts, foreign keys,
+and re-read values before commit; errors roll the entire update transaction
+back. A full source backup is exported before any database write.
 
 Use `--assessment-only` to create the cleaned Pandas/CSV outputs and reports
 without changing SQL Server. Use `--database-dry-run` to exercise the SQL

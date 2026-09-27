@@ -65,6 +65,10 @@ DATE_COLUMNS = {
     "test_date",
 }
 
+MISSING_DATE_SENTINEL = pd.Timestamp("2025-01-01")
+MISSING_TIME_SENTINEL = "00:00:00"
+MISSING_NUMERIC_SENTINEL = 0
+
 STRING_COLUMNS = {
     "departments": ["name"],
     "doctors": ["first_name", "last_name", "specialty"],
@@ -112,11 +116,11 @@ FOREIGN_KEYS = (
 MISSING_DECISIONS = {
     ("insurance_providers", "contact_phone"): (
         "Optional contact information was not supplied.",
-        "Retain as missing; a phone number cannot safely be inferred.",
+        "Use 'Not Specified'; the actual contact number is unknown.",
     ),
     ("patients", "dob"): (
         "Date of birth is absent for some patient records.",
-        "Retain as missing; do not invent age or date of birth.",
+        "Use the explicit 2025-01-01 sentinel; do not interpret it as a verified birth date.",
     ),
     ("patients", "gender"): (
         "Gender is absent for some patient records.",
@@ -128,19 +132,19 @@ MISSING_DECISIONS = {
     ),
     ("patients", "insurance_id"): (
         "No insurer is linked to these patients; this represents self-pay or no recorded insurance.",
-        "Retain as missing; it has business meaning and is not a broken relationship.",
+        "Link to one explicit 'Unknown / Not Specified' provider record to preserve the foreign key.",
     ),
     ("patients", "registration_date"): (
         "The date was not supplied for some records; some additional dates may be after the run's as-of date.",
-        "Retain missing values. Set future registration dates to missing because the actual date is unknown; report the original values.",
+        "Use the explicit 2025-01-01 sentinel for missing or invalid dates; the sentinel is not a verified registration date.",
     ),
     ("appointments", "appointment_date"): (
         "The appointment date is absent for some records.",
-        "Retain as missing; do not remove the appointment or invent a date.",
+        "Use the explicit 2025-01-01 sentinel; do not interpret it as a verified appointment date.",
     ),
     ("appointments", "appointment_time"): (
         "The appointment time is absent for some records.",
-        "Retain as missing; an appointment can still be useful by date/status.",
+        "Use 00:00:00 as an explicit placeholder, not as a verified appointment time.",
     ),
     ("appointments", "status"): (
         "The appointment outcome/status was not recorded.",
@@ -148,11 +152,11 @@ MISSING_DECISIONS = {
     ),
     ("appointments", "reason_for_visit"): (
         "The optional visit reason is absent.",
-        "Retain as missing; the appointment remains usable for scheduling analysis.",
+        "Use 'Not Specified'; do not infer a reason for care.",
     ),
     ("diagnoses", "description"): (
         "The diagnosis description is absent for some records.",
-        "Retain as missing; exclude those values from description-specific analysis rather than inventing a diagnosis.",
+        "Use 'Not Specified'; do not invent a diagnosis description.",
     ),
     ("diagnoses", "severity"): (
         "Severity is absent for some records.",
@@ -160,11 +164,11 @@ MISSING_DECISIONS = {
     ),
     ("diagnoses", "diagnosis_date"): (
         "The diagnosis date is absent for some records.",
-        "Retain as missing; exclude from date-based trends where no date is available.",
+        "Use the explicit 2025-01-01 sentinel; do not interpret it as a verified diagnosis date.",
     ),
     ("billing", "amount"): (
         "The amount is not recorded for some billing entries.",
-        "Retain as missing; financial values must not be imputed with zero, mean, or median.",
+        "Use 0 as the selected explicit placeholder; treat it as unknown, not as a verified zero charge.",
     ),
     ("billing", "payment_status"): (
         "The payment status is not recorded for some billing entries.",
@@ -176,7 +180,7 @@ MISSING_DECISIONS = {
     ),
     ("billing", "billing_date"): (
         "The billing date is absent for some records.",
-        "Retain as missing; exclude from date-based revenue trends.",
+        "Use the explicit 2025-01-01 sentinel; do not interpret it as a verified billing date.",
     ),
     ("lab_tests", "result_status"): (
         "The result status is absent for some tests.",
@@ -184,8 +188,21 @@ MISSING_DECISIONS = {
     ),
     ("lab_tests", "test_date"): (
         "The test date is absent for some records.",
-        "Retain as missing; exclude from date-based trends.",
+        "Use the explicit 2025-01-01 sentinel; do not interpret it as a verified test date.",
     ),
+}
+
+MISSING_CATEGORY_VALUES = {
+    ("insurance_providers", "contact_phone"): "Not Specified",
+    ("patients", "gender"): "Unknown",
+    ("patients", "city"): "Unknown",
+    ("appointments", "status"): "Not Specified",
+    ("appointments", "reason_for_visit"): "Not Specified",
+    ("diagnoses", "description"): "Not Specified",
+    ("diagnoses", "severity"): "Not Specified",
+    ("billing", "payment_status"): "Not Specified",
+    ("billing", "payment_method"): "Not Specified",
+    ("lab_tests", "result_status"): "Not Specified",
 }
 
 SPECIAL_CASE_VALUES = {
@@ -299,6 +316,13 @@ def _same_scalar(left: Any, right: Any) -> bool:
         return True
     if left_missing or right_missing:
         return False
+    date_types = (date, datetime, pd.Timestamp)
+    if isinstance(left, date_types) and isinstance(right, date_types):
+        return pd.Timestamp(left) == pd.Timestamp(right)
+    if isinstance(left, time) and isinstance(right, str):
+        return left.strftime("%H:%M:%S") == right
+    if isinstance(right, time) and isinstance(left, str):
+        return right.strftime("%H:%M:%S") == left
     return bool(left == right)
 
 
@@ -306,11 +330,20 @@ def apply_cleaning_in_place(
     engine: Engine,
     before: dict[str, pd.DataFrame],
     cleaned: dict[str, pd.DataFrame],
-    as_of_date: pd.Timestamp,
+    missing_value_fills: list[dict[str, Any]],
     commit_changes: bool = True,
 ) -> dict[str, int]:
-    """Apply approved corrections and optionally roll back after verification."""
+    """Apply the cleaned values transactionally and verify them before commit."""
     update_counts: dict[str, int] = {}
+
+    def sql_value(value: Any) -> Any:
+        if pd.isna(value):
+            return None
+        if isinstance(value, pd.Timestamp):
+            return value.to_pydatetime()
+        if hasattr(value, "item"):
+            return value.item()
+        return value
 
     with engine.connect() as connection:
         transaction = connection.begin()
@@ -327,12 +360,59 @@ def apply_cleaning_in_place(
                         "no cleaning updates were committed. Rerun the assessment."
                     )
 
-            for table, columns in STRING_COLUMNS.items():
+            original_provider_ids = set(
+                before["insurance_providers"]["insurance_id"].dropna().astype(int)
+            )
+            new_provider_rows = cleaned["insurance_providers"].loc[
+                ~cleaned["insurance_providers"]["insurance_id"]
+                .astype("Int64")
+                .isin(original_provider_ids)
+            ]
+            for provider in new_provider_rows.to_dict(orient="records"):
+                insurance_id = int(provider["insurance_id"])
+                id_exists = connection.execute(
+                    text(
+                        "SELECT COUNT_BIG(*) FROM dbo.[insurance_providers] "
+                        "WHERE [insurance_id] = :insurance_id"
+                    ),
+                    {"insurance_id": insurance_id},
+                ).scalar_one()
+                if id_exists:
+                    raise RuntimeError(
+                        "The selected placeholder insurance ID is already in use; "
+                        "no changes were committed. Rerun the assessment."
+                    )
+                connection.execute(
+                    text(
+                        "INSERT INTO dbo.[insurance_providers] "
+                        "([insurance_id], [provider_name], [coverage_type], [contact_phone]) "
+                        "VALUES (:insurance_id, :provider_name, :coverage_type, :contact_phone)"
+                    ),
+                    {
+                        "insurance_id": insurance_id,
+                        "provider_name": provider["provider_name"],
+                        "coverage_type": provider["coverage_type"],
+                        "contact_phone": provider["contact_phone"],
+                    },
+                )
+
+            columns_by_table: dict[str, set[str]] = {
+                table: set(columns) for table, columns in STRING_COLUMNS.items()
+            }
+            for table, frame in before.items():
+                columns_by_table[table].update(
+                    column for column in DATE_COLUMNS if column in frame.columns
+                )
+            columns_by_table["appointments"].add("appointment_time")
+            columns_by_table["patients"].add("insurance_id")
+            columns_by_table["billing"].add("amount")
+
+            for table, columns in columns_by_table.items():
                 primary_key = PRIMARY_KEYS[table]
                 for column in columns:
                     original = before[table]
                     target = cleaned[table]
-                    changes: dict[tuple[str | None, str | None], list[int]] = {}
+                    changes: dict[tuple[Any, Any], list[int]] = {}
 
                     for record_id, old_value, new_value in zip(
                         original[primary_key],
@@ -341,8 +421,8 @@ def apply_cleaning_in_place(
                     ):
                         if _same_scalar(old_value, new_value):
                             continue
-                        old_key = None if pd.isna(old_value) else str(old_value)
-                        new_key = None if pd.isna(new_value) else str(new_value)
+                        old_key = sql_value(old_value)
+                        new_key = sql_value(new_value)
                         changes.setdefault((old_key, new_key), []).append(int(record_id))
 
                     for (old_value, new_value), record_ids in changes.items():
@@ -358,13 +438,16 @@ def apply_cleaning_in_place(
                             if old_value is None:
                                 old_check = f"[{column}] IS NULL"
                                 parameters = id_parameters
-                            else:
+                            elif column in STRING_COLUMNS.get(table, []):
                                 old_check = (
                                     "CONVERT(varbinary(max), "
                                     f"CONVERT(nvarchar(max), [{column}])) = "
                                     "CONVERT(varbinary(max), "
                                     "CONVERT(nvarchar(max), :old_value))"
                                 )
+                                parameters = {**id_parameters, "old_value": old_value}
+                            else:
+                                old_check = f"[{column}] = :old_value"
                                 parameters = {**id_parameters, "old_value": old_value}
 
                             new_expression = "NULL" if new_value is None else ":new_value"
@@ -390,43 +473,11 @@ def apply_cleaning_in_place(
                                 update_counts.get(table, 0) + result.rowcount
                             )
 
-            future_ids = before["patients"].loc[
-                pd.to_datetime(before["patients"]["registration_date"]).gt(as_of_date),
-                "patient_id",
-            ].astype(int).tolist()
-            for offset in range(0, len(future_ids), 800):
-                batch = future_ids[offset : offset + 800]
-                parameters = {
-                    f"id_{index}": patient_id
-                    for index, patient_id in enumerate(batch)
-                }
-                placeholders = ", ".join(
-                    f":id_{index}" for index in range(len(batch))
-                )
-                parameters["as_of_date"] = as_of_date.date()
-                result = connection.execute(
-                    text(
-                        "UPDATE dbo.[patients] SET [registration_date] = NULL "
-                        f"WHERE [patient_id] IN ({placeholders}) "
-                        "AND [registration_date] > :as_of_date"
-                    ),
-                    parameters,
-                )
-                if result.rowcount != len(batch):
-                    raise RuntimeError(
-                        "Future registration-date verification failed; "
-                        "transaction rolled back."
-                    )
-                update_counts["patients"] = (
-                    update_counts.get("patients", 0) + result.rowcount
-                )
-
             persisted = load_data(connection)
             _verify_persisted_values(cleaned, persisted)
 
-            for table, expected_rows in (
-                (table, len(frame)) for table, frame in before.items()
-            ):
+            for table, expected_frame in cleaned.items():
+                expected_rows = len(expected_frame)
                 actual_rows = len(persisted[table])
                 if actual_rows != expected_rows:
                     raise RuntimeError(
@@ -450,8 +501,12 @@ def _verify_persisted_values(
     expected: dict[str, pd.DataFrame],
     persisted: dict[str, pd.DataFrame],
 ) -> None:
-    """Verify every cleaned text and date field against rows reloaded from SQL."""
-    for table, columns in STRING_COLUMNS.items():
+    """Verify cleaned fields against rows reloaded from SQL before commit."""
+    string_columns = {
+        table: set(columns) for table, columns in STRING_COLUMNS.items()
+    }
+    string_columns["appointments"].add("appointment_time")
+    for table, columns in string_columns.items():
         for column in columns:
             expected_values = expected[table][column].astype("string").reset_index(drop=True)
             persisted_values = persisted[table][column].astype("string").reset_index(drop=True)
@@ -460,6 +515,22 @@ def _verify_persisted_values(
                     f"Post-update verification failed for dbo.{table}.{column}; "
                     "transaction rolled back."
                 )
+
+    for table, column in (
+        ("patients", "insurance_id"),
+        ("billing", "amount"),
+    ):
+        expected_values = pd.to_numeric(
+            expected[table][column], errors="coerce"
+        ).astype("Int64" if column.endswith("_id") else "Float64").reset_index(drop=True)
+        persisted_values = pd.to_numeric(
+            persisted[table][column], errors="coerce"
+        ).astype("Int64" if column.endswith("_id") else "Float64").reset_index(drop=True)
+        if not expected_values.equals(persisted_values):
+            raise RuntimeError(
+                f"Post-update numeric verification failed for dbo.{table}.{column}; "
+                "transaction rolled back."
+            )
 
     for table, frame in expected.items():
         for column in DATE_COLUMNS.intersection(frame.columns):
@@ -475,19 +546,28 @@ def _verify_persisted_values(
 
 
 def _column_action(table: str, column: str) -> str:
+    category_replacement = MISSING_CATEGORY_VALUES.get((table, column))
+    if category_replacement:
+        return (
+            f"Fill missing text values with '{category_replacement}'; "
+            "preserve that the source value was unspecified."
+        )
+
     if (table, column) in MISSING_DECISIONS:
         decision = MISSING_DECISIONS[(table, column)][1]
     else:
         decision = "No missing-value imputation; preserve observed values."
 
     if column.endswith("_id"):
-        return f"Cast identifier to nullable integer; retain keys. {decision}"
+        if table == "patients" and column == "insurance_id":
+            return f"Fill missing links with an explicit placeholder provider. {decision}"
+        return "Cast identifier to integer and preserve the primary/foreign key."
     if column in DATE_COLUMNS:
-        return f"Parse as datetime; retain missing dates. {decision}"
+        return f"Parse as datetime; replace missing or invalid values with the 2025-01-01 sentinel. {decision}"
     if table == "appointments" and column == "appointment_time":
-        return f"Normalize to HH:MM:SS string; retain missing times. {decision}"
+        return f"Normalize to HH:MM:SS string; replace missing times with 00:00:00. {decision}"
     if table == "billing" and column == "amount":
-        return f"Cast to numeric; retain missing, zero, and outlier amounts. {decision}"
+        return f"Cast to numeric; replace missing amounts with 0 and retain outliers. {decision}"
     if table == "insurance_providers" and column == "coverage_type":
         return (
             "Trim/collapse whitespace; standardize the observed literal 'NULL' "
@@ -629,6 +709,7 @@ def _clean_frames(
     list[dict[str, Any]],
     list[dict[str, Any]],
     list[dict[str, Any]],
+    list[dict[str, Any]],
 ]:
     """Return cleaned copies, value changes, date issues, and new-missing decisions."""
     cleaned = {table: frame.copy(deep=True) for table, frame in before.items()}
@@ -636,6 +717,7 @@ def _clean_frames(
     date_issues: list[dict[str, Any]] = []
     newly_missing: list[dict[str, Any]] = []
     future_registration_records: list[dict[str, Any]] = []
+    categorical_fills: list[dict[str, Any]] = []
 
     for table, frame in cleaned.items():
         for column in STRING_COLUMNS[table]:
@@ -644,11 +726,45 @@ def _clean_frames(
                 {"Table": table, "Column": column, **change}
                 for change in changes
             )
+            replacement = MISSING_CATEGORY_VALUES.get((table, column))
+            if replacement is not None:
+                missing_mask = frame[column].isna()
+                missing_count = int(missing_mask.sum())
+                if missing_count:
+                    frame.loc[missing_mask, column] = replacement
+                    categorical_fills.append(
+                        {
+                            "Table": table,
+                            "Column": column,
+                            "Values Filled": missing_count,
+                            "Replacement": replacement,
+                            "Reason": (
+                                "The source value is missing; this explicit label "
+                                "marks it as unspecified without inventing a fact."
+                            ),
+                        }
+                    )
 
         if table == "appointments":
             frame["appointment_time"] = _normalize_appointment_time(
                 frame["appointment_time"]
             )
+            missing_time = frame["appointment_time"].isna()
+            missing_time_count = int(missing_time.sum())
+            if missing_time_count:
+                frame.loc[missing_time, "appointment_time"] = MISSING_TIME_SENTINEL
+                categorical_fills.append(
+                    {
+                        "Table": table,
+                        "Column": "appointment_time",
+                        "Values Filled": missing_time_count,
+                        "Replacement": MISSING_TIME_SENTINEL,
+                        "Reason": (
+                            "00:00:00 is an explicit missing-time placeholder, "
+                            "not a verified appointment time."
+                        ),
+                    }
+                )
 
         if table == "diagnoses":
             frame["diagnosis_code"] = frame["diagnosis_code"].str.upper()
@@ -689,7 +805,7 @@ def _clean_frames(
                         "Column": column,
                         "Issue": "Unparseable date",
                         "Rows": invalid_count,
-                        "Action": "Set to NaT; original database value remains unchanged.",
+                        "Action": "Use the 2025-01-01 sentinel and preserve the issue in this report.",
                     }
                 )
 
@@ -716,21 +832,9 @@ def _clean_frames(
                     )
                     parsed = parsed.mask(future)
                     action = (
-                        "Set to NaT in cleaned data because the true registration "
-                        "date cannot be confirmed; original values are preserved "
-                        "in future_registration_dates.csv."
-                    )
-                    newly_missing.append(
-                        {
-                            "Table": table,
-                            "Column": column,
-                            "New Missing Count": future_count,
-                            "Treatment": (
-                                f"Set {future_count} future registration dates to NaT "
-                                f"as of {as_of_date.date()}; original values are "
-                                "preserved in future_registration_dates.csv."
-                            ),
-                        }
+                        "Replace with the 2025-01-01 sentinel in cleaned data; "
+                        "the original values are preserved in "
+                        "future_registration_dates.csv."
                     )
                 else:
                     action = (
@@ -754,6 +858,22 @@ def _clean_frames(
                     }
                 )
 
+            missing_dates = parsed.isna()
+            missing_date_count = int(missing_dates.sum())
+            if missing_date_count:
+                parsed = parsed.fillna(MISSING_DATE_SENTINEL)
+                categorical_fills.append(
+                    {
+                        "Table": table,
+                        "Column": column,
+                        "Values Filled": missing_date_count,
+                        "Replacement": str(MISSING_DATE_SENTINEL.date()),
+                        "Reason": (
+                            "The 2025-01-01 sentinel is not a verified date; "
+                            "it marks a missing or unparseable source date."
+                        ),
+                    }
+                )
             frame[column] = parsed
 
         for column in frame.columns:
@@ -766,6 +886,71 @@ def _clean_frames(
             frame["amount"] = pd.to_numeric(
                 frame["amount"], errors="coerce"
             ).astype("Float64")
+            missing_amount = frame["amount"].isna()
+            missing_amount_count = int(missing_amount.sum())
+            if missing_amount_count:
+                frame.loc[missing_amount, "amount"] = MISSING_NUMERIC_SENTINEL
+                categorical_fills.append(
+                    {
+                        "Table": table,
+                        "Column": "amount",
+                        "Values Filled": missing_amount_count,
+                        "Replacement": MISSING_NUMERIC_SENTINEL,
+                        "Reason": (
+                            "Zero is an explicit placeholder for an unknown "
+                            "amount, not a verified zero charge."
+                        ),
+                    }
+                )
+
+    missing_insurance = cleaned["patients"]["insurance_id"].isna()
+    missing_insurance_count = int(missing_insurance.sum())
+    if missing_insurance_count:
+        providers = cleaned["insurance_providers"]
+        placeholder_id = int(providers["insurance_id"].max()) + 1
+        if placeholder_id in set(providers["insurance_id"].dropna().astype(int)):
+            raise RuntimeError("Could not reserve an insurance provider ID for the placeholder.")
+        placeholder = {
+            column: pd.NA for column in providers.columns
+        }
+        placeholder.update(
+            {
+                "insurance_id": placeholder_id,
+                "provider_name": "Unknown / Not Specified",
+                "coverage_type": "Unknown",
+                "contact_phone": "Not Specified",
+            }
+        )
+        cleaned["insurance_providers"] = pd.concat(
+            [providers, pd.DataFrame([placeholder])],
+            ignore_index=True,
+        )
+        cleaned["patients"].loc[missing_insurance, "insurance_id"] = placeholder_id
+        cleaned["patients"]["insurance_id"] = cleaned["patients"][
+            "insurance_id"
+        ].astype("Int64")
+        categorical_fills.append(
+            {
+                "Table": "patients",
+                "Column": "insurance_id",
+                "Values Filled": missing_insurance_count,
+                "Replacement": f"{placeholder_id} (Unknown / Not Specified provider)",
+                "Reason": (
+                    "Link to an explicit placeholder provider to avoid an "
+                    "orphaned or invalid foreign key."
+                ),
+                "Placeholder Provider Rows Added": 1,
+            }
+        )
+
+    billing = cleaned["billing"]
+    paid_zero_amount = (
+        billing["payment_status"].astype("string").str.casefold().eq("paid")
+        & pd.to_numeric(billing["amount"], errors="coerce").eq(0)
+    )
+    paid_zero_count = int(paid_zero_amount.sum())
+    if paid_zero_count:
+        billing.loc[paid_zero_amount, "payment_status"] = "Not Specified"
 
     return (
         cleaned,
@@ -773,6 +958,7 @@ def _clean_frames(
         date_issues,
         newly_missing,
         future_registration_records,
+        categorical_fills,
     )
 
 
@@ -850,6 +1036,7 @@ def _missing_analysis_report(
     before: dict[str, pd.DataFrame],
     after: dict[str, pd.DataFrame],
     newly_missing: list[dict[str, Any]],
+    categorical_fills: list[dict[str, Any]],
 ) -> pd.DataFrame:
     added: dict[tuple[str, str], int] = {}
     added_notes: dict[tuple[str, str], list[str]] = {}
@@ -857,6 +1044,10 @@ def _missing_analysis_report(
         key = (item["Table"], item["Column"])
         added[key] = added.get(key, 0) + int(item["New Missing Count"])
         added_notes.setdefault(key, []).append(item["Treatment"])
+    filled = {
+        (item["Table"], item["Column"]): int(item["Values Filled"])
+        for item in categorical_fills
+    }
 
     rows = []
     for table, frame in before.items():
@@ -864,7 +1055,7 @@ def _missing_analysis_report(
             old_count = int(frame[column].isna().sum())
             new_count = int(after[table][column].isna().sum())
             key = (table, column)
-            if old_count == 0 and new_count == 0 and key not in added:
+            if old_count == 0 and new_count == 0 and key not in added and key not in filled:
                 continue
             reason, treatment = MISSING_DECISIONS.get(
                 key,
@@ -873,6 +1064,12 @@ def _missing_analysis_report(
                     "Retain as missing; do not infer a replacement.",
                 ),
             )
+            replacement = MISSING_CATEGORY_VALUES.get(key)
+            if replacement:
+                treatment = (
+                    f"Fill with '{replacement}' because the column is categorical "
+                    "and the actual category is unknown; do not infer a real value."
+                )
             added_text = " ".join(added_notes.get(key, []))
             if added_text:
                 treatment = f"{treatment} {added_text}"
@@ -881,6 +1078,7 @@ def _missing_analysis_report(
                     "Table": table,
                     "Column": column,
                     "Before Missing": old_count,
+                    "Missing Values Filled": filled.get(key, 0),
                     "New Missing During Cleaning": added.get(key, 0),
                     "After Missing": new_count,
                     "Why Missing?": reason,
@@ -986,6 +1184,40 @@ def _before_after_summary(
     return pd.DataFrame(rows)
 
 
+def _payment_amount_consistency_report(
+    before: dict[str, pd.DataFrame],
+    after: dict[str, pd.DataFrame],
+) -> pd.DataFrame:
+    def paid_zero_count(frame: pd.DataFrame) -> int:
+        return int(
+            (
+                frame["payment_status"].astype("string").str.casefold().eq("paid")
+                & pd.to_numeric(frame["amount"], errors="coerce").eq(0)
+            ).sum()
+        )
+
+    original = before["billing"].set_index("billing_id")["payment_status"]
+    cleaned = after["billing"].set_index("billing_id")["payment_status"]
+    reclassified = int(
+        (
+            original.astype("string").str.casefold().eq("paid")
+            & cleaned.astype("string").str.casefold().eq("not specified")
+        ).sum()
+    )
+    violations_after = paid_zero_count(after["billing"])
+    return pd.DataFrame(
+        [
+            {
+                "Rule": "A Paid bill must have a nonzero amount; non-Paid bills may have nonzero amounts.",
+                "Paid With Zero Amount Before": paid_zero_count(before["billing"]),
+                "Paid With Zero Amount After": violations_after,
+                "Paid Status Reclassified To Not Specified": reclassified,
+                "Rule Passed": violations_after == 0,
+            }
+        ]
+    )
+
+
 def _write_summary(
     path: Path,
     before: dict[str, pd.DataFrame],
@@ -994,6 +1226,8 @@ def _write_summary(
     numeric_report: pd.DataFrame,
     value_changes: list[dict[str, Any]],
     date_issues: list[dict[str, Any]],
+    categorical_fills: list[dict[str, Any]],
+    payment_amount_report: pd.DataFrame,
     backup_dir: Path | None,
     update_counts: dict[str, int],
     dry_run_database: bool,
@@ -1014,6 +1248,15 @@ def _write_summary(
         if not amount_rows.empty:
             amount_outliers = int(amount_rows.iloc[0]["IQR Outlier Rows"])
             zero_amounts = int(amount_rows.iloc[0]["Zero Values"])
+    paid_zero_before = int(
+        payment_amount_report.iloc[0]["Paid With Zero Amount Before"]
+    )
+    paid_zero_after = int(
+        payment_amount_report.iloc[0]["Paid With Zero Amount After"]
+    )
+    paid_reclassified = int(
+        payment_amount_report.iloc[0]["Paid Status Reclassified To Not Specified"]
+    )
 
     lines = [
         "DATA CLEANING SUMMARY",
@@ -1026,14 +1269,22 @@ def _write_summary(
         "Rows removed: 0",
         "Text value changes recorded: "
         f"{sum(int(item['Rows Changed']) for item in value_changes):,}",
+        "Previously missing values filled with explicit placeholders: "
+        f"{sum(int(item['Values Filled']) for item in categorical_fills):,}",
+        "Placeholder insurance-provider rows added: "
+        f"{sum(int(item.get('Placeholder Provider Rows Added', 0)) for item in categorical_fills):,}",
         "Future or unparseable date issue rows reported: "
         f"{sum(int(item['Rows']) for item in date_issues):,}",
         f"Zero billing amounts retained: {zero_amounts:,}",
         f"Billing amount IQR outliers retained for review: {amount_outliers:,}",
+        f"Paid bills with zero amount before/after rule: {paid_zero_before:,}/{paid_zero_after:,}",
+        f"Paid statuses changed to Not Specified: {paid_reclassified:,}",
         "",
-        "Missing financial, clinical, demographic, and scheduling values were not",
-        "filled with guessed values. Missingness remains explicit in the cleaned",
-        "DataFrames. Repeated business keys and outliers are reported, not deleted.",
+        "Missing values were replaced with explicit placeholders: dates use",
+        "2025-01-01, amounts use 0, times use 00:00:00, and descriptive fields",
+        "use Unknown/Not Specified labels. These sentinels are not verified facts",
+        "and must be excluded or treated specially in analysis. Possible event",
+        "duplicates and outliers are reported, not deleted.",
         (
             "SQL UPDATE statements were verified and rolled back (database dry run)."
             if dry_run_database
@@ -1087,6 +1338,7 @@ def run_cleaning(
             date_issues,
             newly_missing,
             future_registration_records,
+            categorical_fills,
         ) = _clean_frames(before, normalized_as_of)
 
         backup_dir = (
@@ -1099,7 +1351,7 @@ def run_cleaning(
                 active_engine,
                 before,
                 after,
-                normalized_as_of,
+                categorical_fills,
                 commit_changes=not dry_run_database,
             )
             if write_database
@@ -1111,7 +1363,13 @@ def run_cleaning(
         numeric_report = _numeric_report(before, normalized_as_of)
         foreign_keys = _foreign_key_report(after)
         summary = _before_after_summary(before, after)
-        missing_analysis = _missing_analysis_report(before, after, newly_missing)
+        payment_amount_report = _payment_amount_consistency_report(before, after)
+        missing_analysis = _missing_analysis_report(
+            before,
+            after,
+            newly_missing,
+            categorical_fills,
+        )
         text_consistency = _text_consistency_report(before, after)
 
         before_quality.to_csv(destination / "quality_before.csv", index=False)
@@ -1121,6 +1379,9 @@ def run_cleaning(
         ).to_csv(destination / "quality_report.csv", index=False)
         duplicate_report.to_csv(destination / "duplicate_report.csv", index=False)
         numeric_report.to_csv(destination / "numeric_outlier_report.csv", index=False)
+        payment_amount_report.to_csv(
+            destination / "payment_amount_consistency.csv", index=False
+        )
         pd.concat(
             [
                 before_foreign_keys.assign(Phase="Before"),
@@ -1135,6 +1396,9 @@ def run_cleaning(
         pd.DataFrame(date_issues).to_csv(destination / "date_issues.csv", index=False)
         pd.DataFrame(newly_missing).to_csv(
             destination / "new_missing_values.csv", index=False
+        )
+        pd.DataFrame(categorical_fills).to_csv(
+            destination / "missing_values_filled.csv", index=False
         )
         missing_analysis.to_csv(
             destination / "missing_value_analysis.csv", index=False
@@ -1158,6 +1422,8 @@ def run_cleaning(
             numeric_report,
             value_changes,
             date_issues,
+            categorical_fills,
+            payment_amount_report,
             backup_dir,
             update_counts,
             dry_run_database,
