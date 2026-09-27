@@ -24,10 +24,12 @@ export default function Payments() {
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState({ diagnosis_id: "", amount: "", payment_status: "Paid", payment_method: "Cash", billing_date: "" });
   const [summary, setSummary] = useState(null);
+  const [options, setOptions] = useState({ payment_statuses: [], payment_methods: [] });
   const perPage = 10;
 
   useEffect(() => {
     api.get("/dashboard/summary").then((res) => setSummary(res.data));
+    api.get("/options").then((res) => setOptions(res.data));
     api.get("/diagnoses", { params: { per_page: 200 } }).then((res) => setDiagnoses(res.data.items));
   }, []);
 
@@ -66,22 +68,18 @@ export default function Payments() {
           <KpiCard icon={DollarSign} label="Total Billed" value={`EGP ${summary.total_revenue.toLocaleString()}`} accent />
           <KpiCard icon={CheckCircle2} label="Paid Bills" value={(statusCounts.Paid || 0).toLocaleString()} />
           <KpiCard icon={Clock} label="Pending Bills" value={(statusCounts.Pending || 0).toLocaleString()} />
-          <KpiCard icon={AlertTriangle} label="Overdue Bills" value={(statusCounts.Overdue || 0).toLocaleString()} />
+          <KpiCard icon={AlertTriangle} label="Unpaid Bills" value={(statusCounts.Unpaid || 0).toLocaleString()} />
         </div>
       )}
 
       <div className="flex flex-wrap gap-3">
         <select value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }} className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm">
           <option value="">All statuses</option>
-          <option>Paid</option>
-          <option>Pending</option>
-          <option>Overdue</option>
+          {options.payment_statuses.map((value) => <option key={value}>{value}</option>)}
         </select>
         <select value={method} onChange={(e) => { setPage(1); setMethod(e.target.value); }} className="px-3 py-2.5 rounded-xl border border-gray-200 text-sm">
           <option value="">All methods</option>
-          <option>Insurance</option>
-          <option>Cash</option>
-          <option>Card</option>
+          {options.payment_methods.map((value) => <option key={value}>{value}</option>)}
         </select>
       </div>
 
@@ -96,14 +94,10 @@ export default function Payments() {
           <input type="number" step="0.01" placeholder="Amount (EGP)" value={form.amount} onChange={(e) => setForm({ ...form, amount: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />
           <div className="grid grid-cols-2 gap-3">
             <select value={form.payment_status} onChange={(e) => setForm({ ...form, payment_status: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option>Paid</option>
-              <option>Pending</option>
-              <option>Overdue</option>
+              {options.payment_statuses.map((value) => <option key={value}>{value}</option>)}
             </select>
             <select value={form.payment_method} onChange={(e) => setForm({ ...form, payment_method: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm">
-              <option>Cash</option>
-              <option>Card</option>
-              <option>Insurance</option>
+              {options.payment_methods.map((value) => <option key={value}>{value}</option>)}
             </select>
           </div>
           <input type="date" value={form.billing_date} onChange={(e) => setForm({ ...form, billing_date: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm" />

@@ -18,15 +18,13 @@ export default function Diagnoses() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [severity, setSeverity] = useState("");
-  const [patients, setPatients] = useState([]);
-  const [doctors, setDoctors] = useState([]);
+  const [appointments, setAppointments] = useState([]);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ patient_id: "", doctor_id: "", diagnosis_code: "", description: "", severity: "Mild", diagnosis_date: "" });
+  const [form, setForm] = useState({ appointment_id: "", diagnosis_code: "", description: "", severity: "Mild", diagnosis_date: "" });
   const perPage = 10;
 
   useEffect(() => {
-    api.get("/patients", { params: { per_page: 200 } }).then((res) => setPatients(res.data.items));
-    api.get("/doctors", { params: { per_page: 200 } }).then((res) => setDoctors(res.data.items));
+    api.get("/appointments", { params: { per_page: 200 } }).then((res) => setAppointments(res.data.items));
   }, []);
 
   const load = () => {
@@ -38,14 +36,13 @@ export default function Diagnoses() {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (!form.patient_id || !form.doctor_id || !form.description) return;
+    if (!form.appointment_id || !form.description) return;
     await api.post("/diagnoses", {
       ...form,
-      patient_id: parseInt(form.patient_id),
-      doctor_id: parseInt(form.doctor_id),
+      appointment_id: Number(form.appointment_id),
       diagnosis_date: form.diagnosis_date || undefined,
     });
-    setForm({ patient_id: "", doctor_id: "", diagnosis_code: "", description: "", severity: "Mild", diagnosis_date: "" });
+    setForm({ appointment_id: "", diagnosis_code: "", description: "", severity: "Mild", diagnosis_date: "" });
     setOpen(false);
     load();
   };
@@ -84,13 +81,13 @@ export default function Diagnoses() {
 
       <Modal open={open} onClose={() => setOpen(false)} title="Add Diagnosis">
         <form onSubmit={submit} className="space-y-3">
-          <select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            <option value="">Select patient</option>
-            {patients.map((p) => <option key={p.patient_id} value={p.patient_id}>{p.first_name} {p.last_name}</option>)}
-          </select>
-          <select value={form.doctor_id} onChange={(e) => setForm({ ...form, doctor_id: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
-            <option value="">Select doctor</option>
-            {doctors.map((d) => <option key={d.doctor_id} value={d.doctor_id}>Dr. {d.first_name} {d.last_name} ({d.specialty})</option>)}
+          <select value={form.appointment_id} onChange={(e) => setForm({ ...form, appointment_id: e.target.value })} className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm">
+            <option value="">Select appointment</option>
+            {appointments.map((appointment) => (
+              <option key={appointment.appointment_id} value={appointment.appointment_id}>
+                {appointment.patient_name} — {appointment.doctor_name} — {appointment.appointment_date}
+              </option>
+            ))}
           </select>
           <div className="grid grid-cols-2 gap-3">
             <input placeholder="Code (e.g. J06.9)" value={form.diagnosis_code} onChange={(e) => setForm({ ...form, diagnosis_code: e.target.value })} className="px-3 py-2 border border-gray-200 rounded-lg text-sm" />

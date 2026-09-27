@@ -5,6 +5,9 @@ __pycache__/
 venv/
 env/
 
+# Locally extracted clinic records, backups, and analysis exports
+analysis_outputs/cleaning_data/
+
 # Frontend dependencies and build output
 rcm/frontend/node_modules/
 rcm/frontend/dist/

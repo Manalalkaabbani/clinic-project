@@ -10,7 +10,7 @@ import {
 } from "recharts";
 
 const COLORS = ["#2563EB", "#60A5FA", "#1D4ED8", "#93C5FD", "#3B82F6", "#1E40AF"];
-const STATUS_COLORS = { Paid: "#10B981", Pending: "#F59E0B", Overdue: "#EF4444" };
+const STATUS_COLORS = { Paid: "#10B981", Pending: "#F59E0B", Unpaid: "#EF4444", Cancelled: "#9CA3AF" };
 const DATE_FILTERS = [
   { label: "All time", days: null },
   { label: "Today", days: 0 },
@@ -189,7 +189,7 @@ export default function Dashboard({ userName, onChangeName }) {
         <KpiCard icon={DollarSign} label="Total Revenue" value={`EGP ${data.total_revenue.toLocaleString()}`} hint="Across all recorded billing" accent />
         <KpiCard icon={ClipboardList} label="Total Diagnoses" value={data.total_diagnoses.toLocaleString()} hint="Clinical records" />
         <KpiCard icon={Users} label="Total Patients" value={data.total_patients.toLocaleString()} hint="Registered patients" />
-        <KpiCard icon={AlertTriangle} label="Overdue Rate" value={`${data.overdue_rate}%`} hint={`${paymentTotals.Overdue || 0} overdue invoices`} />
+        <KpiCard icon={AlertTriangle} label="Unpaid Rate" value={`${data.unpaid_rate}%`} hint={`${data.unpaid_count.toLocaleString()} unpaid invoices`} />
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
@@ -305,7 +305,7 @@ export default function Dashboard({ userName, onChangeName }) {
         <div className="glass-panel rounded-2xl p-5">
           <div className="mb-4">
             <h3 className="font-semibold text-gray-800">Invoice status volume</h3>
-            <p className="mt-1 text-xs text-gray-500">A direct view of paid, pending, and overdue work</p>
+            <p className="mt-1 text-xs text-gray-500">A direct view of each invoice status</p>
           </div>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={statusBreakdown} margin={{ top: 8, right: 10, left: 0, bottom: 8 }}>

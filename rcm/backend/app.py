@@ -3,7 +3,7 @@ app.py — Clinic RCM Backend API (Flask + SQLAlchemy)
 Run with: python app.py
 Serves on http://localhost:5000
 
-Reads/writes the same clinic.db used by the rest of the project.
+Connects to the configured SQL Server database using Windows authentication.
 Chain: Departments -> Doctors -> Patients (via Insurance) ->
        Diagnoses -> Billing -> Lab Tests (requested services)
 """
@@ -11,21 +11,50 @@ Chain: Departments -> Doctors -> Patients (via Insurance) ->
 from flask import Flask, request, jsonify, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
-from datetime import date, datetime
+from sqlalchemy.engine import URL
+from datetime import date, datetime, time
 import io
 import os
 import zipfile
 
 import pandas as pd
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_PATH = os.path.join(BASE_DIR, "clinic.db")
-
 app = Flask(__name__)
 CORS(app)
-app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
+    "DATABASE_URL",
+    URL.create(
+        "mssql+pyodbc",
+        host=r"MAROZZ\SQLEXPRESS",
+        database="HealthCare",
+        query={
+            "driver": "ODBC Driver 18 for SQL Server",
+            "trusted_connection": "yes",
+            "Encrypt": "yes",
+            "TrustServerCertificate": "yes",
+            "Application Name": "CarePath Clinic API",
+        },
+    ),
+)
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
 db = SQLAlchemy(app)
+
+
+def iso_value(value):
+    return value.isoformat() if hasattr(value, "isoformat") else value
+
+
+def parse_date(value):
+    if isinstance(value, str) and value:
+        return date.fromisoformat(value)
+    return value
+
+
+def parse_time(value):
+    if isinstance(value, str) and value:
+        return time.fromisoformat(value)
+    return value
 
 
 # ============================================================
@@ -76,49 +105,51 @@ class Patient(db.Model):
     patient_id = db.Column(db.Integer, primary_key=True)
     first_name = db.Column(db.String, nullable=False)
     last_name = db.Column(db.String, nullable=False)
-    dob = db.Column(db.String, nullable=False)
+    dob = db.Column(db.Date, nullable=True)
     gender = db.Column(db.String, nullable=False)
     city = db.Column(db.String, nullable=False)
     insurance_id = db.Column(db.Integer, db.ForeignKey("insurance_providers.insurance_id"))
-    registration_date = db.Column(db.String, nullable=False)
+    registration_date = db.Column(db.Date, nullable=True)
 
     def to_dict(self):
         ins = InsuranceProvider.query.get(self.insurance_id) if self.insurance_id else None
         age = None
         try:
-            d = datetime.strptime(self.dob, "%Y-%m-%d").date()
+            d = self.dob if isinstance(self.dob, date) else datetime.strptime(self.dob, "%Y-%m-%d").date()
             age = (date.today() - d).days // 365
         except Exception:
             pass
         return {
             "patient_id": self.patient_id, "first_name": self.first_name, "last_name": self.last_name,
-            "dob": self.dob, "age": age, "gender": self.gender, "city": self.city,
+            "dob": iso_value(self.dob), "age": age, "gender": self.gender, "city": self.city,
             "insurance_id": self.insurance_id, "insurance_name": ins.provider_name if ins else "Self-pay",
-            "registration_date": self.registration_date,
+            "registration_date": iso_value(self.registration_date),
         }
 
 
 class Diagnosis(db.Model):
     __tablename__ = "diagnoses"
     diagnosis_id = db.Column(db.Integer, primary_key=True)
+    appointment_id = db.Column(db.Integer, db.ForeignKey("appointments.appointment_id"), nullable=False)
     patient_id = db.Column(db.Integer, db.ForeignKey("patients.patient_id"), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey("doctors.doctor_id"), nullable=False)
     diagnosis_code = db.Column(db.String, nullable=False)
     description = db.Column(db.String, nullable=False)
     severity = db.Column(db.String, nullable=False)
-    diagnosis_date = db.Column(db.String, nullable=False)
+    diagnosis_date = db.Column(db.Date, nullable=True)
 
     def to_dict(self):
         p = Patient.query.get(self.patient_id)
         d = Doctor.query.get(self.doctor_id)
         return {
-            "diagnosis_id": self.diagnosis_id, "patient_id": self.patient_id,
+            "diagnosis_id": self.diagnosis_id, "appointment_id": self.appointment_id,
+            "patient_id": self.patient_id,
             "patient_name": f"{p.first_name} {p.last_name}" if p else None,
             "doctor_id": self.doctor_id,
             "doctor_name": f"Dr. {d.first_name} {d.last_name}" if d else None,
             "specialty": d.specialty if d else None,
             "diagnosis_code": self.diagnosis_code, "description": self.description,
-            "severity": self.severity, "diagnosis_date": self.diagnosis_date,
+            "severity": self.severity, "diagnosis_date": iso_value(self.diagnosis_date),
         }
 
 
@@ -129,7 +160,7 @@ class Billing(db.Model):
     amount = db.Column(db.Float, nullable=False)
     payment_status = db.Column(db.String, nullable=False)
     payment_method = db.Column(db.String, nullable=False)
-    billing_date = db.Column(db.String, nullable=False)
+    billing_date = db.Column(db.Date, nullable=True)
 
     def to_dict(self):
         dg = Diagnosis.query.get(self.diagnosis_id)
@@ -141,7 +172,7 @@ class Billing(db.Model):
             "billing_id": self.billing_id, "diagnosis_id": self.diagnosis_id,
             "patient_name": patient_name, "diagnosis": dg.description if dg else None,
             "amount": self.amount, "payment_status": self.payment_status,
-            "payment_method": self.payment_method, "billing_date": self.billing_date,
+            "payment_method": self.payment_method, "billing_date": iso_value(self.billing_date),
         }
 
 
@@ -151,7 +182,7 @@ class LabTest(db.Model):
     diagnosis_id = db.Column(db.Integer, db.ForeignKey("diagnoses.diagnosis_id"), nullable=False)
     test_type = db.Column(db.String, nullable=False)
     result_status = db.Column(db.String, nullable=False)
-    test_date = db.Column(db.String, nullable=False)
+    test_date = db.Column(db.Date, nullable=True)
 
     def to_dict(self):
         dg = Diagnosis.query.get(self.diagnosis_id)
@@ -162,7 +193,7 @@ class LabTest(db.Model):
         return {
             "lab_test_id": self.lab_test_id, "diagnosis_id": self.diagnosis_id,
             "patient_name": patient_name, "diagnosis": dg.description if dg else None,
-            "test_type": self.test_type, "result_status": self.result_status, "test_date": self.test_date,
+            "test_type": self.test_type, "result_status": self.result_status, "test_date": iso_value(self.test_date),
         }
 
 
@@ -171,10 +202,10 @@ class Appointment(db.Model):
     appointment_id = db.Column(db.Integer, primary_key=True)
     patient_id = db.Column(db.Integer, nullable=False)
     doctor_id = db.Column(db.Integer, nullable=False)
-    nurse_id = db.Column(db.Integer, nullable=False)
-    room_id = db.Column(db.Integer, nullable=False)
-    appointment_date = db.Column(db.String, nullable=False)
-    status = db.Column(db.String, nullable=False)
+    appointment_date = db.Column(db.Date, nullable=True)
+    appointment_time = db.Column(db.Time, nullable=True)
+    status = db.Column(db.String, nullable=True)
+    reason_for_visit = db.Column(db.String)
 
     def to_dict(self):
         patient = Patient.query.get(self.patient_id)
@@ -185,8 +216,9 @@ class Appointment(db.Model):
             "patient_name": f"{patient.first_name} {patient.last_name}" if patient else None,
             "doctor_id": self.doctor_id,
             "doctor_name": f"Dr. {doctor.first_name} {doctor.last_name}" if doctor else None,
-            "nurse_id": self.nurse_id, "room_id": self.room_id,
-            "appointment_date": self.appointment_date, "status": self.status,
+            "appointment_date": iso_value(self.appointment_date),
+            "appointment_time": iso_value(self.appointment_time),
+            "status": self.status, "reason_for_visit": self.reason_for_visit,
         }
 
 
@@ -246,6 +278,11 @@ def modify_record(table, record_id):
     if not updates:
         return jsonify({"error": "no editable fields supplied"}), 400
     for key, value in updates.items():
+        column_type = model.__table__.columns[key].type
+        if isinstance(column_type, db.Date):
+            value = parse_date(value)
+        elif isinstance(column_type, db.Time):
+            value = parse_time(value)
         setattr(record, key, value)
     try:
         db.session.commit()
@@ -284,42 +321,59 @@ def dashboard_summary():
     if department and department != "All departments":
         filtered_billing = filtered_billing.filter(Department.name == department)
     if payment_status and payment_status != "All statuses":
-        filtered_billing = filtered_billing.filter(Billing.payment_status == payment_status)
+        if payment_status == "Unspecified":
+            filtered_billing = filtered_billing.filter(Billing.payment_status.is_(None))
+        else:
+            filtered_billing = filtered_billing.filter(Billing.payment_status == payment_status)
 
     billing_ids = filtered_billing.with_entities(Billing.billing_id).subquery()
     diagnosis_ids = filtered_billing.with_entities(Billing.diagnosis_id).subquery()
     patient_ids = filtered_billing.with_entities(Diagnosis.patient_id).subquery()
+    has_filters = bool(
+        date_from
+        or date_to
+        or insurance_id
+        or (department and department != "All departments")
+        or (payment_status and payment_status != "All statuses")
+    )
 
     total_revenue = filtered_billing.with_entities(db.func.sum(Billing.amount)).scalar() or 0
-    total_diagnoses = db.session.query(Diagnosis).filter(
-        Diagnosis.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id))
-    ).count()
-    total_patients = db.session.query(Patient).filter(
-        Patient.patient_id.in_(db.select(patient_ids.c.patient_id))
-    ).count()
-    total_doctors = Doctor.query.count()
-    overdue_count = filtered_billing.filter(Billing.payment_status == "Overdue").count()
+    if has_filters:
+        total_diagnoses = db.session.query(Diagnosis).filter(
+            Diagnosis.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id))
+        ).count()
+        total_patients = db.session.query(Patient).filter(
+            Patient.patient_id.in_(db.select(patient_ids.c.patient_id))
+        ).count()
+        total_doctors = filtered_billing.with_entities(Diagnosis.doctor_id).distinct().count()
+        lab_test_count = db.session.query(LabTest).filter(
+            LabTest.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id))
+        ).count()
+    else:
+        total_diagnoses = Diagnosis.query.count()
+        total_patients = Patient.query.count()
+        total_doctors = Doctor.query.count()
+        lab_test_count = LabTest.query.count()
+    unpaid_count = filtered_billing.filter(Billing.payment_status == "Unpaid").count()
     total_bills = filtered_billing.count()
-    overdue_rate = round(100 * overdue_count / total_bills, 1) if total_bills else 0
+    unpaid_rate = round(100 * unpaid_count / total_bills, 1) if total_bills else 0
     severe_count = db.session.query(Diagnosis).filter(
         Diagnosis.diagnosis_id.in_(db.select(diagnosis_ids.c.diagnosis_id)),
         Diagnosis.severity == "Severe",
     ).count()
-    lab_test_count = LabTest.query.count()
-
     # revenue by month
     rows = filtered_billing.with_entities(Billing.billing_date, Billing.amount).all()
     monthly = {}
     for bdate, amount in rows:
-        month = bdate[:7] if bdate else "unknown"
-        monthly[month] = monthly.get(month, 0) + amount
+        month = iso_value(bdate)[:7] if bdate else "unknown"
+        monthly[month] = monthly.get(month, 0) + (amount or 0)
     monthly_revenue = [{"month": m, "amount": round(a, 2)} for m, a in sorted(monthly.items())]
 
     # payment status breakdown
     status_rows = filtered_billing.with_entities(
         Billing.payment_status, db.func.count(Billing.billing_id)
     ).group_by(Billing.payment_status).all()
-    payment_status = [{"status": s, "count": c} for s, c in status_rows]
+    payment_status = [{"status": s or "Unspecified", "count": c} for s, c in status_rows]
 
     # revenue by department
     dept_rows = (
@@ -353,7 +407,8 @@ def dashboard_summary():
         "total_diagnoses": total_diagnoses,
         "total_patients": total_patients,
         "total_doctors": total_doctors,
-        "overdue_rate": overdue_rate,
+        "unpaid_count": unpaid_count,
+        "unpaid_rate": unpaid_rate,
         "severe_count": severe_count,
         "lab_test_count": lab_test_count,
         "monthly_revenue": monthly_revenue,
@@ -404,7 +459,7 @@ def doctors():
         q = q.filter(Doctor.department_id == int(department_id))
 
     page, per_page = get_page_params()
-    items, total = paginate(q, page, per_page)
+    items, total = paginate(q.order_by(Doctor.doctor_id), page, per_page)
     return jsonify({"items": [i.to_dict() for i in items], "total": total, "page": page, "per_page": per_page})
 
 
@@ -416,9 +471,9 @@ def patients():
     if request.method == "POST":
         data = request.get_json()
         p = Patient(
-            first_name=data["first_name"], last_name=data["last_name"], dob=data["dob"],
+            first_name=data["first_name"], last_name=data["last_name"], dob=parse_date(data["dob"]),
             gender=data["gender"], city=data["city"], insurance_id=data.get("insurance_id"),
-            registration_date=data.get("registration_date", date.today().isoformat()),
+            registration_date=parse_date(data.get("registration_date") or date.today().isoformat()),
         )
         db.session.add(p)
         db.session.commit()
@@ -426,16 +481,30 @@ def patients():
 
     q = Patient.query
     search = request.args.get("search")
+    gender = request.args.get("gender")
     city = request.args.get("city")
+    insurance_id = request.args.get("insurance_id")
     if search:
         like = f"%{search}%"
         q = q.filter(db.or_(Patient.first_name.ilike(like), Patient.last_name.ilike(like), Patient.city.ilike(like)))
+    if gender:
+        q = q.filter(Patient.gender == gender)
     if city:
         q = q.filter(Patient.city == city)
+    if insurance_id == "none":
+        q = q.filter(Patient.insurance_id.is_(None))
+    elif insurance_id:
+        q = q.filter(Patient.insurance_id == int(insurance_id))
 
     page, per_page = get_page_params()
     items, total = paginate(q.order_by(Patient.patient_id.desc()), page, per_page)
     return jsonify({"items": [i.to_dict() for i in items], "total": total, "page": page, "per_page": per_page})
+
+
+@app.route("/api/patient-options")
+def patient_options():
+    cities = db.session.query(Patient.city).distinct().order_by(Patient.city).all()
+    return jsonify({"cities": [city for (city,) in cities if city]})
 
 
 # ============================================================
@@ -445,10 +514,15 @@ def patients():
 def diagnoses():
     if request.method == "POST":
         data = request.get_json()
+        appointment = db.session.get(Appointment, data["appointment_id"])
+        if not appointment:
+            return jsonify({"error": "appointment not found"}), 404
         dg = Diagnosis(
-            patient_id=data["patient_id"], doctor_id=data["doctor_id"],
+            appointment_id=appointment.appointment_id,
+            patient_id=appointment.patient_id, doctor_id=appointment.doctor_id,
             diagnosis_code=data["diagnosis_code"], description=data["description"],
-            severity=data["severity"], diagnosis_date=data.get("diagnosis_date", date.today().isoformat()),
+            severity=data["severity"],
+            diagnosis_date=parse_date(data.get("diagnosis_date") or date.today().isoformat()),
         )
         db.session.add(dg)
         db.session.commit()
@@ -481,7 +555,7 @@ def billing():
         b = Billing(
             diagnosis_id=data["diagnosis_id"], amount=data["amount"],
             payment_status=data["payment_status"], payment_method=data["payment_method"],
-            billing_date=data.get("billing_date", date.today().isoformat()),
+            billing_date=parse_date(data.get("billing_date") or date.today().isoformat()),
         )
         db.session.add(b)
         db.session.commit()
@@ -509,7 +583,8 @@ def lab_tests():
         data = request.get_json()
         lt = LabTest(
             diagnosis_id=data["diagnosis_id"], test_type=data["test_type"],
-            result_status=data["result_status"], test_date=data.get("test_date", date.today().isoformat()),
+            result_status=data["result_status"],
+            test_date=parse_date(data.get("test_date") or date.today().isoformat()),
         )
         db.session.add(lt)
         db.session.commit()
@@ -534,8 +609,9 @@ def appointments():
         data = request.get_json()
         appointment = Appointment(
             patient_id=data["patient_id"], doctor_id=data["doctor_id"],
-            nurse_id=data["nurse_id"], room_id=data["room_id"],
-            appointment_date=data["appointment_date"], status=data["status"],
+            appointment_date=parse_date(data["appointment_date"]), status=data["status"],
+            appointment_time=parse_time(data.get("appointment_time")) or None,
+            reason_for_visit=data.get("reason_for_visit") or None,
         )
         db.session.add(appointment)
         db.session.commit()
@@ -557,6 +633,27 @@ def appointments():
 def insurance_providers():
     items = InsuranceProvider.query.all()
     return jsonify([i.to_dict() for i in items])
+
+
+@app.route("/api/options")
+def options():
+    def distinct_values(model, column):
+        return [
+            value for (value,) in db.session.query(column)
+            .filter(column.isnot(None))
+            .distinct()
+            .order_by(column)
+            .all()
+            if value and value.strip()
+        ]
+
+    return jsonify({
+        "appointment_statuses": distinct_values(Appointment, Appointment.status),
+        "payment_statuses": distinct_values(Billing, Billing.payment_status),
+        "payment_methods": distinct_values(Billing, Billing.payment_method),
+        "lab_test_types": distinct_values(LabTest, LabTest.test_type),
+        "lab_result_statuses": distinct_values(LabTest, LabTest.result_status),
+    })
 
 
 # ============================================================
@@ -592,8 +689,32 @@ def import_csv():
         return jsonify({"error": "table and file are required"}), 400
     if table not in ALL_TABLES:
         return jsonify({"error": "invalid table name"}), 400
-    df = pd.read_csv(file)
-    df.to_sql(table, db.engine, if_exists="append", index=False)
+
+    model, _ = RECORD_MODELS[table]
+    try:
+        df = pd.read_csv(file)
+    except Exception as exc:
+        return jsonify({"error": f"could not read CSV file: {exc}"}), 400
+
+    table_columns = {column.name: column for column in model.__table__.columns}
+    missing = [
+        column.name for column in model.__table__.columns
+        if not column.primary_key and not column.nullable and column.default is None
+        and column.name not in df.columns
+    ]
+    if missing:
+        return jsonify({"error": f"CSV is missing required columns: {', '.join(missing)}"}), 400
+
+    supported_columns = [column for column in df.columns if column in table_columns]
+    if not supported_columns:
+        return jsonify({"error": f"CSV has no columns for the {table} table"}), 400
+
+    df = df[supported_columns]
+    try:
+        df.to_sql(table, db.engine, if_exists="append", index=False)
+    except Exception as exc:
+        db.session.rollback()
+        return jsonify({"error": f"import failed: {exc}"}), 400
     return jsonify({"message": f"Imported {len(df)} rows into {table}"}), 201
 
 

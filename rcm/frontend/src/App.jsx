@@ -24,7 +24,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      <div className="app-shell flex min-h-screen min-w-0 flex-col bg-[#eef3ff] lg:flex-row">
+      <div className="app-shell flex min-h-screen min-w-0 flex-col bg-canvas lg:flex-row">
         <Sidebar />
         <main className="app-content min-w-0 flex-1">
           <header className="app-topbar">
