@@ -4,12 +4,14 @@ export default {
   theme: {
     extend: {
       colors: {
+        canvas: "#F5F2EA",
+        ivory: "#FCFBF7",
         brand: {
-          50: "#EFF6FF",
-          100: "#DBEAFE",
-          500: "#2563EB",
-          600: "#1D4ED8",
-          700: "#1E40AF",
+          50: "#F1F3F9",
+          100: "#E1E7F4",
+          500: "#315FC8",
+          600: "#244FC0",
+          700: "#1B3F9A",
           900: "#172554",
         },
       },

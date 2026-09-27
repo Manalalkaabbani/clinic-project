@@ -2,18 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --color-canvas: #f5f2ea;
+  --color-surface: #fcfbf7;
+  --color-cobalt: #244fc0;
+  --color-cobalt-deep: #1b3f9a;
+  --color-line: #e7e2d7;
+}
+
 body {
   margin: 0;
   font-family: 'Segoe UI', system-ui, sans-serif;
   color: #172554;
-  background: #eef3ff;
+  background: var(--color-canvas);
 }
 
 @layer components {
   .app-sidebar {
-    background: linear-gradient(180deg, #031b94 0%, #031b94 100%);
+    background: linear-gradient(180deg, var(--color-cobalt) 0%, var(--color-cobalt-deep) 100%);
     border-radius: 0 30px 30px 0;
-    box-shadow: 12px 0 30px rgba(47, 70, 220, 0.16);
+    box-shadow: 10px 0 28px rgba(31, 54, 110, 0.14);
   }
 
   .app-content {
@@ -28,7 +36,7 @@ body {
     align-items: center;
     min-height: 76px;
     padding: 1rem 2.5rem;
-    background: rgba(238, 243, 255, 0.92);
+    background: rgba(245, 242, 234, 0.94);
     backdrop-filter: blur(14px);
     -webkit-backdrop-filter: blur(14px);
   }
@@ -37,24 +45,24 @@ body {
     min-height: calc(100vh - 76px);
     margin: 0 2.5rem 2.5rem 1.5rem;
     padding: 2rem;
-    border-radius: 28px;
-    background: rgba(255, 255, 255, 0.9);
-    box-shadow: 0 20px 50px rgba(53, 77, 170, 0.1);
+    border-radius: 24px;
+    background: rgba(252, 251, 247, 0.96);
+    box-shadow: 0 16px 40px rgba(66, 61, 49, 0.07);
   }
 
   .app-search {
     width: 100%;
-    border: 1px solid #e1e8f8;
+    border: 1px solid var(--color-line);
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.72);
+    background: rgba(255, 254, 250, 0.88);
     padding: 0.65rem 1rem 0.65rem 2.25rem;
     font-size: 0.8rem;
     outline: none;
   }
 
   .app-search:focus {
-    border-color: #8095ff;
-    box-shadow: 0 0 0 3px rgba(49, 82, 245, 0.1);
+    border-color: #6f89cf;
+    box-shadow: 0 0 0 3px rgba(36, 79, 192, 0.12);
   }
 
   .topbar-icon,
@@ -65,35 +73,33 @@ body {
     align-items: center;
     justify-content: center;
     border-radius: 999px;
-    color: #64748b;
-    background: rgba(255, 255, 255, 0.75);
+    color: #667085;
+    background: rgba(252, 251, 247, 0.9);
   }
 
   .topbar-avatar {
     color: white;
-    background: #031b94;
+    background: var(--color-cobalt);
   }
 
   .data-card {
-    border: 1px solid #e8edf7;
-    border-radius: 18px;
-    background: #fff;
-    box-shadow: 0 12px 30px rgba(44, 67, 150, 0.06);
+    border: 1px solid var(--color-line);
+    border-radius: 16px;
+    background: #fffefa;
+    box-shadow: 0 8px 24px rgba(66, 61, 49, 0.05);
   }
 
   .glass-panel {
-    background: rgba(255, 255, 255, 0.68);
-    backdrop-filter: blur(18px);
-    -webkit-backdrop-filter: blur(18px);
-    border: 1px solid rgba(255, 255, 255, 0.86);
-    box-shadow: 0 16px 40px rgba(30, 64, 175, 0.08);
+    background: rgba(255, 254, 250, 0.88);
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    box-shadow: 0 12px 32px rgba(66, 61, 49, 0.07);
     transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
   }
 
   .glass-panel:hover {
     transform: translateY(-2px);
-    border-color: rgba(147, 197, 253, 0.72);
-    box-shadow: 0 20px 46px rgba(30, 64, 175, 0.13);
+    border-color: rgba(88, 117, 186, 0.32);
+    box-shadow: 0 16px 34px rgba(66, 61, 49, 0.1);
   }
 
   @media (max-width: 1023px) {
@@ -117,6 +123,6 @@ body {
 
   .glass-action:hover {
     transform: translateY(-1px);
-    box-shadow: 0 10px 22px rgba(30, 64, 175, 0.2);
+    box-shadow: 0 8px 18px rgba(37, 55, 102, 0.14);
   }
 }

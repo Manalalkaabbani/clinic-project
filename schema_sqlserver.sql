@@ -16,14 +16,6 @@ CREATE TABLE insurance_providers (
     coverage_type   NVARCHAR(50) NOT NULL,      -- Basic, Premium, Full
     contact_phone   NVARCHAR(30) NULL
 );
-
-CREATE TABLE medications (
-    medication_id   INT IDENTITY(1,1) PRIMARY KEY,
-    name            NVARCHAR(100) NOT NULL,
-    category        NVARCHAR(100) NOT NULL,
-    unit_price      DECIMAL(10,2) NOT NULL
-);
-
 -- ---------- Staff & facilities ----------
 
 CREATE TABLE doctors (
@@ -36,26 +28,6 @@ CREATE TABLE doctors (
     CONSTRAINT FK_doctors_department FOREIGN KEY (department_id)
         REFERENCES departments(department_id)
 );
-
-CREATE TABLE nurses (
-    nurse_id        INT IDENTITY(1,1) PRIMARY KEY,
-    first_name      NVARCHAR(50) NOT NULL,
-    last_name       NVARCHAR(50) NOT NULL,
-    department_id   INT NOT NULL,
-    shift           NVARCHAR(20) NOT NULL,      -- Morning / Evening / Night
-    CONSTRAINT FK_nurses_department FOREIGN KEY (department_id)
-        REFERENCES departments(department_id)
-);
-
-CREATE TABLE rooms (
-    room_id         INT IDENTITY(1,1) PRIMARY KEY,
-    room_number     NVARCHAR(20) NOT NULL,
-    department_id   INT NOT NULL,
-    room_type       NVARCHAR(30) NOT NULL,      -- Consultation / Procedure / Lab
-    CONSTRAINT FK_rooms_department FOREIGN KEY (department_id)
-        REFERENCES departments(department_id)
-);
-
 -- ---------- Patients ----------
 
 CREATE TABLE patients (
@@ -96,15 +68,6 @@ CREATE TABLE diagnoses (
     CONSTRAINT FK_diag_appt FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
 );
 
-CREATE TABLE treatments (
-    treatment_id      INT IDENTITY(1,1) PRIMARY KEY,
-    appointment_id    INT NOT NULL,
-    procedure_type    NVARCHAR(100) NOT NULL,
-    cost              DECIMAL(10,2) NOT NULL,
-    duration_minutes  INT NOT NULL,
-    CONSTRAINT FK_treat_appt FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
-);
-
 CREATE TABLE lab_tests (
     lab_test_id      INT IDENTITY(1,1) PRIMARY KEY,
     appointment_id   INT NOT NULL,
@@ -112,16 +75,6 @@ CREATE TABLE lab_tests (
     result_status    NVARCHAR(20) NOT NULL,     -- Normal / Abnormal / Pending
     test_date        DATE NOT NULL,
     CONSTRAINT FK_lab_appt FOREIGN KEY (appointment_id) REFERENCES appointments(appointment_id)
-);
-
-CREATE TABLE prescriptions (
-    prescription_id   INT IDENTITY(1,1) PRIMARY KEY,
-    diagnosis_id      INT NOT NULL,
-    medication_id     INT NOT NULL,
-    dosage            NVARCHAR(50) NOT NULL,
-    duration_days     INT NOT NULL,
-    CONSTRAINT FK_presc_diag FOREIGN KEY (diagnosis_id) REFERENCES diagnoses(diagnosis_id),
-    CONSTRAINT FK_presc_med  FOREIGN KEY (medication_id) REFERENCES medications(medication_id)
 );
 
 CREATE TABLE billing (

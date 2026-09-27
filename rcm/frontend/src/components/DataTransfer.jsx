@@ -14,6 +14,17 @@ const TABLES = [
   "appointments",
 ];
 
+const TABLE_TEMPLATES = {
+  departments: ["name"],
+  doctors: ["first_name", "last_name", "specialty", "department_id"],
+  insurance_providers: ["provider_name", "coverage_type", "contact_phone"],
+  patients: ["first_name", "last_name", "dob", "gender", "city", "insurance_id", "registration_date"],
+  diagnoses: ["patient_id", "doctor_id", "diagnosis_code", "description", "severity", "diagnosis_date"],
+  billing: ["diagnosis_id", "amount", "payment_status", "payment_method", "billing_date"],
+  lab_tests: ["diagnosis_id", "test_type", "result_status", "test_date"],
+  appointments: ["patient_id", "doctor_id", "nurse_id", "room_id", "appointment_date", "status"],
+};
+
 export default function DataTransfer() {
   const [importOpen, setImportOpen] = useState(false);
   const [table, setTable] = useState(TABLES[0]);
@@ -44,6 +55,20 @@ export default function DataTransfer() {
     setStatus("");
   };
 
+  const handleDownloadTemplate = () => {
+    const headers = TABLE_TEMPLATES[table] || [];
+    const csvContent = `${headers.join(",")}\n`;
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${table}_template.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <>
       <div className="border-t border-white/10 px-3 pb-4 pt-4">
@@ -70,6 +95,9 @@ export default function DataTransfer() {
           <select value={table} onChange={(event) => setTable(event.target.value)} className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm">
             {TABLES.map((name) => <option key={name} value={name}>{name}</option>)}
           </select>
+          <button type="button" onClick={handleDownloadTemplate} className="flex w-full items-center justify-center gap-2 rounded-lg border border-brand-200 bg-brand-50 px-3 py-2 text-sm font-medium text-brand-700 hover:bg-brand-100">
+            <Download size={16} /> Download CSV template
+          </button>
           <input type="file" accept=".csv" onChange={(event) => setFile(event.target.files?.[0] || null)} className="w-full text-sm" />
           {status && <p className="text-sm text-gray-600">{status}</p>}
           <button type="submit" className="w-full rounded-lg bg-brand-600 py-2.5 text-sm font-medium text-white hover:bg-brand-700">Upload</button>
