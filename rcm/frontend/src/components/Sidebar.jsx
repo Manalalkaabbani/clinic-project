@@ -17,8 +17,11 @@ const NAV_ITEMS = [
   { to: "/appointments", label: "Appointments", icon: CalendarDays },
 ];
 
-export default function Sidebar() {
+export default function Sidebar({ isSuperAdmin = false, canImport = false }) {
   const [collapsed, setCollapsed] = useState(false);
+  const navItems = isSuperAdmin
+    ? [...NAV_ITEMS, { to: "/admin/users", label: "Users & access", icon: Users }]
+    : NAV_ITEMS;
 
   return (
     <aside className={`app-sidebar flex w-full shrink-0 flex-col overflow-hidden text-white transition-all duration-300 lg:sticky lg:top-0 lg:h-screen ${collapsed ? "lg:w-20" : "lg:w-56"}`}>
@@ -44,7 +47,7 @@ export default function Sidebar() {
       <nav className="flex-1 overflow-x-auto px-3 pb-3 lg:mt-4 lg:overflow-visible lg:pb-0">
         {!collapsed && <div className="mb-2 hidden px-3 text-[10px] font-bold uppercase tracking-[0.18em] text-white/50 lg:block">Workspace</div>}
         <div className="flex min-w-max gap-1 lg:flex-col lg:space-y-1">
-          {NAV_ITEMS.map(({ to, label, icon: Icon, end }) => (
+          {navItems.map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}
@@ -64,7 +67,7 @@ export default function Sidebar() {
         </div>
       </nav>
 
-      {!collapsed && <DataTransfer />}
+      {!collapsed && canImport && <DataTransfer />}
 
       {!collapsed && <div className="hidden px-6 py-5 text-[11px] text-white/45 lg:block">
         <div>CarePath</div>

@@ -38,7 +38,7 @@ function getDateRange(filter) {
   };
 }
 
-export default function Dashboard({ userName, onChangeName }) {
+export default function Dashboard({ userName }) {
   const [data, setData] = useState(null);
   const [period, setPeriod] = useState(12);
   const [department, setDepartment] = useState("All departments");
@@ -121,15 +121,7 @@ export default function Dashboard({ userName, onChangeName }) {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-brand-600">Clinic overview</p>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-extrabold text-gray-900">Hello, {userName || "there"} 👋</h1>
-            <button
-              onClick={onChangeName}
-              className="text-xs font-semibold text-brand-600 hover:text-brand-700"
-            >
-              Change name
-            </button>
-          </div>
+          <h1 className="text-2xl font-extrabold text-gray-900">Hello, {userName || "there"} 👋</h1>
           <p className="text-gray-500">Here's what's happening across the clinic.</p>
         </div>
         <div className="flex items-center gap-2">

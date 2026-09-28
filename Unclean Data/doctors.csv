@@ -1,0 +1,251 @@
+doctor_id,first_name,last_name,specialty,department_id
+1,Karim,El-Sayed,Orthopedic Surgeon,3
+2,Sameh,Abdallah,Gastroenterologist,15
+3,Jana,Sultan,Pediatrician,4
+4,Yasmin,Tawfik,Ophthalmologist,12
+5,Rania,El-Masry,Rheumatologist,19
+6,Sahar,Abdel Rahman,Rheumatologist,19
+7,Yara,Sabry,Emergency Physician,8
+8,Nesma,Hassan,Pulmonologist,16
+9,Reem,Farouk,Psychiatrist,13
+10, Tarek,Ahmed,Internist,19
+11, Shaimaa,Khalil,Orthopedic Surgeon,3
+12,Sameh,Rady,Emergency Physician,8
+13,Rania,Fahmy,Urologist,14
+14,Ahmed,Ali,OB-GYN,10
+15,Omar,Mahmoud,Cardiologist,1
+16,Wafaa,Abdel Rahman,Gastroenterologist,15
+17,Hala,Kamal,Nephrologist,17
+18,Amira, Kamal,OB-GYN,7
+19,Ali ,Hegazy,General Surgeon,13
+20,Jana,Ali,Orthopedic Surgeon,3
+21,Mariam,Hegazy,oncologist,6
+22,Mahmoud,Hegazy,Endocrinologist,18
+23,Hussein,Rady,Endocrinologist,18
+24,Ali,Ali,Psychiatrist,13
+25,Fady,Ali,Orthopedic Surgeon,3
+26,Amira,El-Sayed,Orthopedic Surgeon,3
+27,Reem,Rady  ,Internist,10
+28,Yasser, Ali,Ophthalmologist  ,15
+29,Nour,Hamed,Cardiologist,1
+30,Nesma,Hassan,Urologist,14
+31,Adel,Nasser,ENT Specialist,11
+32,Amira  ,Mohamed,Cardiologist,1
+33,Ramy,Soliman,Neurologist,2
+34,Rania,Ahmed,Internist,10
+35,Wafaa,Mahmoud,Gastroenterologist,15
+36,Amr  ,Mahmoud,Nephrologist,17
+37,Adel,aBDEL rAHMAN,General Surgeon,9
+38,Laila,Ahmed,Oncologist,6
+39,Sami,GABER,OB-GYN,20
+40,Reem,Rady,Internist,10
+41,Rania,Mansour,Radiologist,7
+42,Fatma,Shaker,General Surgeon,9
+43,NADA,Abdel Rahman,Cardiologist,1
+44, Ramy,Fouad,Radiologist,1
+45,Ahmed,Abdel Rahman,ENT Specialist,11
+46,Tamer,Kamal,rHEUMATOLOGIST,19
+47,Adel ,Sultan,Gastroenterologist,15
+48,Omar  ,Mansour,Pulmonologist,16
+49,Salma,Tawfik,ENT Specialist,11
+50,Adel,Farouk,Orthopedic Surgeon,3
+51,Salma,Zaki,Emergency Physician,8
+52,Sara,El-Masry,OB-GYN,20
+53,Doaa,Nasser,Cardiologist,1
+54,Eman,Ahmed, Endocrinologist,18
+55,Youssef,Khalil,Urologist,14
+56,Rania,Mahmoud,Oncologist,6
+57,Hassan  ,Farouk,Pulmonologist,16
+58,Ayman,Abdallah,Nephrologist  ,17
+59,gHADA,Youssef,Cardiologist,1
+60,George,Abdallah,Orthopedic Surgeon,3
+61,Yasser,Salem,Urologist,14
+62,Peter,Rady,OB-GYN,7
+63,Salma,Sabry,Cardiologist,1
+64,Youssef,Gaber,Urologist,14
+65,Ashraf,El-Sayed,Orthopedic Surgeon,3
+66,Wael,ahmed,Urologist ,14
+67,Yara,Mohamed,Psychiatrist,13
+68,Khaled,Fouad,Neurologist,2
+69,Hassan,Hegazy,Urologist,9
+70,Mohamed,Mansour,eNDOCRINOLOGIST,18
+71,Nour,Farouk,Endocrinologist,18
+72,Marwa ,Hassan,Cardiologist,1
+73,mARWA,Ibrahim,Dermatologist,5
+74,Sherif,El-Masry,Dermatologist,5
+75,AMR,Hassan,Internist,10
+76,Maha,Ahmed,Orthopedic Surgeon,3
+77,Reem,Gaber,Endocrinologist,18
+78,Maha,Hegazy,Pulmonologist,16
+79,Yasser,Shaker,Nephrologist,17
+80,Amr,Ibrahim,Pediatrician,4
+81,Heba,El-Masry,cARDIOLOGIST,1
+82,Wafaa,El-Masry,Rheumatologist,19
+83,Ayman,Abdel Rahman,Oncologist,16
+84,Rania,Hegazy,Urologist,14
+85,Shaimaa,Abdallah,rHEUMATOLOGIST,19
+86,Mostafa,Sultan,Cardiologist,1
+87,Sahar,Kamal,Cardiologist,1
+88,Hassan,Abdel Rahman,Cardiologist,1
+89,ZIAD,Rady,Pediatrician,4
+90,Wafaa,Zaki,Neurologist,15
+91,Yasmin,Saad,Nephrologist,17
+92,Omar,Salem,Psychiatrist,13
+93,Laila,Saad,OB-GYN,20
+94,Mohamed,Zaki,Nephrologist,17
+95,Rania,Tawfik,OB-GYN  ,20
+96,Ibrahim,Ali,Dermatologist,5
+97,Yara,Abdel Rahman,Oncologist,6
+98,Yara,Nasser,Nephrologist,17
+99,Nour,Kamal,Dermatologist,5
+100,RANDA,Mansour,Neurologist,2
+101,mAHMOUD,Sultan,Urologist,14
+102,Iman,El-Masry,Nephrologist,17
+103,Sami,EL-MASRY,OB-GYN,20
+104,Randa,Hamed,Rheumatologist,19
+105,Heba,Zaki,Orthopedic Surgeon,3
+106,Tamer,Fouad,Pulmonologist,16
+107,Sara,Shaker  ,NEPHROLOGIST,17
+108,Laila,Salem ,Urologist,14
+109,Ali,Abdallah,Nephrologist,17
+110,Amr ,Abdallah,Nephrologist,17
+111,Ahmed,Ahmed,General Surgeon,9
+112,PETER,Ali,Cardiologist,1
+113,Tarek,Hamed,iNTERNIST,10
+114,Doaa,khalil,Dermatologist,5
+115,Hala,Ali,Orthopedic Surgeon,3
+116,Sherif,Gaber,Orthopedic Surgeon,3
+117,Randa,Saad,Urologist,14
+118,Aya,yOUSSEF,ENT Specialist,11
+119,Michael,Fahmy,ENT Specialist,19
+120,Iman  ,Fouad,Gastroenterologist,15
+121,Mona,mansour,ENT SPECIALIST,16
+122,DINA,Fahmy,Psychiatrist,13
+123,Fatma,Tawfik,Neurologist,2
+124,Wafaa,Kamal,Endocrinologist,18
+125,Yasser,Hamed,General Surgeon,9
+126,Dina,Fouad,Pediatrician,4
+127,Fatma,Mahmoud,Nephrologist,17
+128,Youssef,Shaker,Gastroenterologist,15
+129,Aya,Abdallah,Neurologist,2
+130,Ramy,El-Sayed,Pediatrician,4
+131,Tamer,Zaki,Cardiologist,1
+132,Omar,Sabry,Oncologist,6
+133,Iman,Shaker,nEUROLOGIST,2
+134,Karim,Hegazy,Gastroenterologist,15
+135,Sherif,el-masry,ENT Specialist,11
+136,Sameh,Khalil,OB-GYN,20
+137,Ghada,Zaki,Gastroenterologist ,15
+138,Randa, Kamal,Psychiatrist,13
+139,Mohamed,Hamed,ENT Specialist,11
+140,Karim,Nasser,nEUROLOGIST,16
+141,Rania,Sabry,Neurologist,2
+142,Amr,El-Masry,Psychiatrist,13
+143,Yara,Khalil,Cardiologist,1
+144,Peter ,Salem,Cardiologist,1
+145,Salma,yOUSSEF,Dermatologist,5
+146,Ziad,Abdel Rahman,Endocrinologist,18
+147, Ali,Nasser,Internist,10
+148,Laila, Mansour,Gastroenterologist,15
+149,Ibrahim,Tawfik,General Surgeon,9
+150,Nour,Saad,Pediatrician,4
+151,Wafaa,Ibrahim,EMERGENCY PHYSICIAN,8
+152,Fatma,eL-sAYED,Neurologist,2
+153,YASMIN,Mahmoud,Pulmonologist,16
+154,Heba,Tawfik,Pediatrician,4
+155,Hussein,Ahmed,Emergency  Physician,8
+156,Youssef,youssef,OB-GYN,20
+157,Ahmed,Rady,Ophthalmologist,12
+158,Eman,shaker,Internist,10
+159,Ziad,Mansour,ENT Specialist,11
+160,Youssef,El-Masry,Pulmonologist,16
+161,Hussein, Hegazy,Oncologist,6
+162,Mostafa,Hassan,Psychiatrist,13
+163,Wael,Sabry,Endocrinologist,18
+164,Fady,Saad,Ophthalmologist,12
+165,Iman,Salem,General Surgeon,9
+166,Nesma, Ibrahim,Orthopedic Surgeon,4
+167,Hala,Saad,dERMATOLOGIST,5
+168,Karim,Soliman,Rheumatologist,19
+169,Nagwa,Rady,ENT Specialist,11
+170,Ramy,Ibrahim,Radiologist,7
+171,Fatma,Mansour,General Surgeon,9
+172,Ghada,Sabry ,Ophthalmologist,12
+173,aya,Soliman,ENT Specialist,11
+174,Michael,Ali,Urologist,14
+175,rAMY,Sabry,Oncologist,6
+176,Sara, Sabry,Psychiatrist,13
+177,Ibrahim,mAHMOUD,General Surgeon,9
+178,Youssef,Abdel Rahman,Rheumatologist,19
+179,Sameh,Gaber,Pediatrician,4
+180,Wael,Rady,Orthopedic Surgeon ,3
+181,Mahmoud  ,Hamed,INTERNIST,10
+182,Sherif,Zaki,ENT Specialist,11
+183, Yara,SULTAN,Urologist,14
+184,Salma,Zaki,General Surgeon,3
+185,Sara,Hegazy,Rheumatologist,19
+186,Ali,Sabry,Internist,10
+187,Laila,Ibrahim,Orthopedic Surgeon,3
+188,Ayman,Abdallah,Orthopedic Surgeon,3
+189,AMR,Soliman,OB-GYN,20
+190,Yasser,Rady,Orthopedic Surgeon,3
+191, Mostafa,Ahmed,Rheumatologist,19
+192,Rania,Ibrahim,Oncologist,6
+193,Yasser,Mansour,Neurologist,2
+194,Sahar,Saad,Radiologist,7
+195,Ali, Mahmoud,Psychiatrist ,13
+196,Fatma,Mahmoud  ,General Surgeon,20
+197,Sameh,Hassan,Pulmonologist,16
+198,Adel,Nasser,Psychiatrist  ,13
+199,Nour,Mohamed,gENERAL sURGEON,9
+200,Doaa,Rady,Psychiatrist,13
+201,Sami,Khalil,OB-GYN,20
+202,Sara,Hamed,General Surgeon,9
+203,George,Shaker,Pediatrician,4
+204,Nour, Mansour,General Surgeon,9
+205,Iman,Soliman,Nephrologist,17
+206,Waleed  ,Tawfik ,Dermatologist,5
+207,Fatma,Hegazy,Rheumatologist,19
+208,Yasser,Zaki,Ophthalmologist,12
+209,Omar,Mansour,Psychiatrist,11
+210,Sameh,Khalil,Radiologist,7
+211,Karim,Abdallah,Rheumatologist ,19
+212,Sahar,Rady,Cardiologist,1
+213,Michael,Ali,Oncologist,6
+214,Ramy,Hegazy,General Surgeon,9
+215,Hala,El-Masry, Internist,10
+216,Ali  ,Hassan  ,Internist,10
+217,dOAA,Zaki,Orthopedic Surgeon,3
+218,Peter,Hassan,Dermatologist,5
+219,Nagwa,Soliman,Neurologist,2
+220,Fatma,Ibrahim,Ophthalmologist,12
+221,Doaa,KHALIL,Emergency Physician,8
+222,Youssef,Salem,Ophthalmologist,12
+223,Hussein,Soliman  ,Ophthalmologist,12
+224,Maha,Gaber  ,Gastroenterologist,15
+225,Hassan,Hegazy,ENT Specialist,11
+226, Jana,Zaki,Psychiatrist,13
+227,Ibrahim,Youssef,Ophthalmologist,12
+228,Heba,Shaker,Urologist,14
+229,Nada,Soliman,Psychiatrist,13
+230,Mostafa,Fahmy,Radiologist,7
+231,Michael,Tawfik,Dermatologist,5
+232,Shaimaa ,Farouk,Pulmonologist,16
+233,Wael,Abdel Rahman,Radiologist,7
+234,Randa,Tawfik,ENT Specialist,11
+235,Michael,salem,Pediatrician,4
+236,Shaimaa,El-Sayed,General Surgeon,9
+237,Rania,Zaki,ENT Specialist,11
+238,Waleed,Fahmy,Psychiatrist  ,13
+239,Sara  ,Mansour,ENT Specialist,11
+240,Sherif,kAMAL,Emergency Physician,8
+241,Sahar,kamal,OB-GYN,20
+242,Waleed,Ali,ENT Specialist,11
+243,Youssef,Sabry,NEPHROLOGIST,17
+244,Ayman,Ali,Gastroenterologist,15
+245,Yasser,Ibrahim,Ophthalmologist  ,12
+246,Tamer,sabry,Endocrinologist,18
+247,RANIA,Nasser,Orthopedic Surgeon ,3
+248,Ibrahim,Hamed,Rheumatologist,8
+249,Laila,Tawfik,Endocrinologist,18
+250,Hassan,Fouad,ENT Specialist,11

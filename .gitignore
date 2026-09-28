@@ -19,6 +19,7 @@ rcm/frontend/.vite/
 .env
 .env.*
 !.env.example
+rcm/backend/.secret_key
 
 # IDE and OS files
 .vscode/*

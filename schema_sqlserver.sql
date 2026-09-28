@@ -1,6 +1,6 @@
-    CREATE DATABASE ClinicDB;
+    
 
-USE ClinicDB;
+USE HealthClinicDB;
 
 -- ---------- Reference / lookup tables ----------
 

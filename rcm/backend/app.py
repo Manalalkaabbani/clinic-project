@@ -9,36 +9,50 @@ Chain: Departments -> Doctors -> Patients (via Insurance) ->
 """
 
 from flask import Flask, request, jsonify, send_file
-from flask_sqlalchemy import SQLAlchemy
 from flask_cors import CORS
 from sqlalchemy.engine import URL
-from datetime import date, datetime, time
+from sqlalchemy.pool import NullPool
+from datetime import date, datetime, time, timedelta
 import io
 import os
 import zipfile
 
 import pandas as pd
+import pyodbc
+from user_management import UserAccount, db, initialize_user_table, load_secret_key, register_user_management
+
+pyodbc.pooling = False
 
 app = Flask(__name__)
-CORS(app)
+allowed_origins = os.environ.get(
+    "CORS_ORIGINS",
+    "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174",
+)
+CORS(app, origins=[origin.strip() for origin in allowed_origins.split(",")], supports_credentials=True)
+app.config["SECRET_KEY"] = load_secret_key()
+app.config["SESSION_COOKIE_HTTPONLY"] = True
+app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+app.config["SESSION_COOKIE_SECURE"] = os.environ.get("SESSION_COOKIE_SECURE", "false").lower() == "true"
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(hours=12)
 app.config["SQLALCHEMY_DATABASE_URI"] = os.environ.get(
     "DATABASE_URL",
     URL.create(
         "mssql+pyodbc",
-        host=r"MAROZZ\SQLEXPRESS",
+        host=r".\SQLEXPRESS",
         database="HealthCare",
         query={
             "driver": "ODBC Driver 18 for SQL Server",
             "trusted_connection": "yes",
             "Encrypt": "yes",
             "TrustServerCertificate": "yes",
+            "MARS_Connection": "no",
             "Application Name": "CarePath Clinic API",
         },
     ),
 )
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"pool_pre_ping": True}
-db = SQLAlchemy(app)
+app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {"poolclass": NullPool}
+db.init_app(app)
 
 
 def iso_value(value):
@@ -718,5 +732,9 @@ def import_csv():
     return jsonify({"message": f"Imported {len(df)} rows into {table}"}), 201
 
 
+register_user_management(app)
+
+
 if __name__ == "__main__":
-    app.run(debug=False, port=5000, host="0.0.0.0", threaded=True)
+    initialize_user_table(app)
+    app.run(debug=False, port=int(os.environ.get("PORT", "5000")), host="0.0.0.0", threaded=True)

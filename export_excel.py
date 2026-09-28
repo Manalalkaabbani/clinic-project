@@ -8,23 +8,74 @@ Builds a multi-sheet Excel workbook from the analysis outputs:
 """
 
 import pandas as pd
-import sqlite3
 import os
+import pyodbc
 from openpyxl import Workbook
 from openpyxl.chart import BarChart, LineChart, PieChart, Reference
 from openpyxl.styles import Font, PatternFill, Alignment
 from openpyxl.utils.dataframe import dataframe_to_rows
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-OUT_DIR = os.path.join(BASE_DIR, "analysis_outputs")
+pyodbc.pooling = False
+conn = pyodbc.connect(
+    r"DRIVER={ODBC Driver 18 for SQL Server};"
+    r"SERVER=.\SQLEXPRESS;"
+    r"DATABASE=HealthCare;"
+    r"Trusted_Connection=yes;"
+    r"Encrypt=yes;"
+    r"TrustServerCertificate=yes;"
+    r"MARS_Connection=no;"
+    r"APP=CarePath Excel Report;",
+    timeout=5,
+)
 
-conn = sqlite3.connect(os.path.join(BASE_DIR, "clinic.db"))
 
-monthly_volume = pd.read_csv(os.path.join(OUT_DIR, "monthly_appointment_volume.csv"))
-monthly_revenue = pd.read_csv(os.path.join(OUT_DIR, "monthly_revenue.csv"))
-age_seg = pd.read_csv(os.path.join(OUT_DIR, "age_segmentation.csv"))
-city_seg = pd.read_csv(os.path.join(OUT_DIR, "city_segmentation.csv"))
-dept_revenue = pd.read_csv(os.path.join(OUT_DIR, "department_revenue.csv"))
+def read_sql(query):
+    cursor = conn.cursor()
+    cursor.execute(query)
+    columns = [column[0] for column in cursor.description]
+    return pd.DataFrame.from_records(cursor.fetchall(), columns=columns)
+
+
+monthly_volume = read_sql("""
+    SELECT CONVERT(char(7), appointment_date, 126) AS month,
+           COUNT(*) AS num_appointments
+    FROM appointments
+    WHERE appointment_date IS NOT NULL
+    GROUP BY CONVERT(char(7), appointment_date, 126)
+    ORDER BY month
+""")
+
+monthly_revenue = read_sql("""
+    SELECT CONVERT(char(7), billing_date, 126) AS month,
+           SUM(amount) AS amount
+    FROM billing
+    WHERE billing_date IS NOT NULL
+    GROUP BY CONVERT(char(7), billing_date, 126)
+    ORDER BY month
+""")
+
+patients = read_sql("SELECT dob, city FROM patients WHERE dob IS NOT NULL")
+patients["dob"] = pd.to_datetime(patients["dob"])
+patients["age"] = ((pd.Timestamp.today().normalize() - patients["dob"]).dt.days / 365.25).astype(int)
+patients["age_group"] = pd.cut(
+    patients["age"],
+    bins=[0, 18, 40, 60, 120],
+    labels=["Under 18", "18-39", "40-59", "60+"],
+    right=False,
+)
+age_seg = patients["age_group"].value_counts().rename_axis("age_group").reset_index(name="num_patients")
+city_seg = patients["city"].value_counts().rename_axis("city").reset_index(name="num_patients")
+
+dept_revenue = read_sql("""
+    SELECT dp.name AS department, SUM(b.amount) AS revenue
+    FROM billing b
+    JOIN diagnoses dg ON b.diagnosis_id = dg.diagnosis_id
+    JOIN doctors d ON dg.doctor_id = d.doctor_id
+    JOIN departments dp ON d.department_id = dp.department_id
+    GROUP BY dp.name
+    ORDER BY revenue DESC
+""")
 
 # Extra pivot: appointment status breakdown by department
 q = """
@@ -34,8 +85,20 @@ JOIN doctors d ON a.doctor_id = d.doctor_id
 JOIN departments dp ON d.department_id = dp.department_id
 GROUP BY dp.name, a.status
 """
-status_by_dept = pd.read_sql_query(q, conn)
+status_by_dept = read_sql(q)
 status_pivot = status_by_dept.pivot_table(index="department", columns="status", values="n", fill_value=0)
+
+no_show_summary = read_sql("""
+    SELECT COUNT(*) AS total_appointments,
+           SUM(CASE
+                 WHEN LOWER(REPLACE(REPLACE(status, ' ', ''), '-', '')) = 'noshow' THEN 1
+                 ELSE 0
+               END) AS no_show_appointments
+    FROM appointments
+""").iloc[0]
+total_appointments = int(no_show_summary["total_appointments"])
+no_show_appointments = int(no_show_summary["no_show_appointments"] or 0)
+no_show_rate = 100 * no_show_appointments / total_appointments if total_appointments else 0
 
 wb = Workbook()
 HEADER_FILL = PatternFill(start_color="1F4E78", end_color="1F4E78", fill_type="solid")
@@ -71,9 +134,8 @@ findings = [
     f"(EGP {dept_revenue.iloc[0]['revenue']:,.2f})",
     f"4. Largest patient age segment: {age_seg.iloc[0]['age_group']} ({age_seg.iloc[0]['num_patients']} patients)",
     f"5. Most represented city: {city_seg.iloc[0]['city']} ({city_seg.iloc[0]['num_patients']} patients)",
-    "6. No-show rate averages ~15% overall, with variation across departments — see 'Appointment Status' sheet.",
-    "7. No single patient/appointment attribute strongly predicts no-shows on its own — a richer feature set "
-    "(e.g. appointment lead time, past no-show history) would likely improve prediction accuracy.",
+    f"6. No-show rate: {no_show_rate:.1f}% ({no_show_appointments} of {total_appointments} appointments).",
+    "7. See the 'Appointment Status' sheet for the appointment-status breakdown by department.",
 ]
 for i, line in enumerate(findings, start=1):
     cell = ws.cell(row=i, column=1, value=line)
@@ -154,7 +216,7 @@ chart6.add_data(data6, titles_from_data=True)
 chart6.set_categories(cats6)
 ws5.add_chart(chart6, "H2")
 
-report_path = os.path.join(BASE_DIR, "clinic_report.xlsx")
+report_path = os.environ.get("CLINIC_REPORT_PATH", os.path.join(BASE_DIR, "clinic_report.xlsx"))
 wb.save(report_path)
 print("Excel report saved:", report_path)
 conn.close()
